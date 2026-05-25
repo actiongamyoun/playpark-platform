@@ -337,6 +337,41 @@
     display: none;
   }
   .item-hint.active { display: block; }
+
+  /* 짧은 화면 대응 (모달 안에서 작은 영역) */
+  @media (max-height: 740px) {
+    .hud { padding: 6px 10px 2px; gap: 4px; }
+    .hud-box { padding: 4px 6px; }
+    .hud-box .label { font-size: 8px; }
+    .hud-box .value { font-size: 14px; }
+    .sound-toggle { width: 28px; height: 28px; font-size: 12px; }
+    .theme-banner { padding: 2px 16px 4px; font-size: 10px; }
+    .game-area { padding: 2px 6px 4px; gap: 4px; }
+    .grid { width: min(88vw, 360px); padding: 4px; }
+    .tray { padding: 6px; min-height: 70px; gap: 4px; }
+    .tray-slot { min-height: 56px; }
+    .tray-piece-cell { width: 12px; height: 12px; }
+    .items-bar { gap: 4px; padding: 0 6px; }
+    .item-btn { padding: 4px 8px; }
+    .item-icon { font-size: 16px; }
+    .item-count { font-size: 9px; min-width: 14px; height: 14px; padding: 0 3px; }
+    .item-hint { padding: 2px 10px; font-size: 10px; }
+  }
+
+  /* 매우 짧은 화면 (iframe 안 모달 모바일) */
+  @media (max-height: 620px) {
+    .hud { padding: 4px 8px 2px; }
+    .hud-box .label { font-size: 7px; letter-spacing: 0.4px; }
+    .hud-box .value { font-size: 12px; }
+    .theme-banner { display: none; }
+    .game-area { gap: 3px; padding: 1px 4px 2px; }
+    .grid { width: min(82vw, 320px); gap: 2px; padding: 3px; }
+    .tray { padding: 4px; min-height: 56px; }
+    .tray-slot { min-height: 44px; }
+    .tray-piece-cell { width: 10px; height: 10px; }
+    .item-btn { padding: 3px 6px; }
+    .item-icon { font-size: 14px; }
+  }
 </style>
 </head>
 <body>

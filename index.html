@@ -831,9 +831,16 @@
     .modal-body { flex-direction: column; }
     .modal-sidebar { 
       width: 100%; 
-      max-height: 25dvh;
+      max-height: 0;
       border-left: none; 
-      border-top: 1px solid var(--border); 
+      border-top: 1px solid var(--border);
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    /* X 버튼 첫 클릭 시 사이드바 표시 */
+    .game-modal.sidebar-shown .modal-sidebar {
+      max-height: 50dvh;
+      overflow-y: auto;
     }
     .modal-game-frame { 
       min-height: 0;
@@ -850,6 +857,12 @@
       padding: 0;
     }
     .modal-fullscreen-btn { display: none; }
+    /* 사이드바 표시 상태에서 X 버튼은 빨강으로 (한번 더 눌러야 닫힘 힌트) */
+    .game-modal.sidebar-shown .modal-close {
+      background: var(--pink);
+      color: white;
+      border-color: var(--pink);
+    }
     .admin-page { padding: 14px 14px 40px; }
     .games-table { font-size: 12px; }
     .games-table th, .games-table td { padding: 8px 6px; }
@@ -1735,8 +1748,20 @@ function startGameIframe() {
 }
 
 function closeGame() {
-  document.getElementById('game-modal').classList.remove('active');
-  document.getElementById('game-modal').classList.remove('fullscreen');
+  // 모바일에서는 사이드바를 먼저 보여주고, 다시 누르면 닫음
+  const modal = document.getElementById('game-modal');
+  const isMobile = window.innerWidth <= 768;
+  
+  if (isMobile && !modal.classList.contains('sidebar-shown')) {
+    // 첫 X 클릭: 사이드바 표시
+    modal.classList.add('sidebar-shown');
+    return;
+  }
+  
+  // 두 번째 클릭이거나 PC: 진짜 닫기
+  modal.classList.remove('active');
+  modal.classList.remove('fullscreen');
+  modal.classList.remove('sidebar-shown');
   document.getElementById('game-frame-container').innerHTML = '';
   document.body.style.overflow = '';
   openedGame = null;
