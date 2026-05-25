@@ -142,6 +142,29 @@
     font-size:20px; font-weight:bold; color:#f59e0b;
     margin-bottom:20px;
   }
+
+  /* 짧은 화면 (모달 안) 컴팩트 모드 */
+  @media (max-height: 740px) {
+    .hud { padding: 8px 12px; }
+    .hud-item { padding: 5px 10px; font-size: 13px; gap: 4px; }
+    .subtitle { font-size: 15px; margin-bottom: 18px; }
+    .btn { padding: 12px 26px; font-size: 16px; }
+    .btn-small { padding: 8px 16px; font-size: 13px; }
+    .gacha-gem { font-size: 70px; margin: 12px 0; }
+    .gacha-name { font-size: 19px; }
+    .gacha-rank { font-size: 14px; padding: 4px 12px; }
+    .coin-display { font-size: 16px; padding: 6px 12px; margin-bottom: 12px; }
+    .codex-grid { max-height: 50vh; }
+  }
+  @media (max-height: 620px) {
+    .hud { padding: 6px 10px; }
+    .hud-item { padding: 3px 8px; font-size: 11px; }
+    .subtitle { font-size: 13px; margin-bottom: 12px; }
+    .btn { padding: 10px 22px; font-size: 14px; margin: 4px; }
+    .btn-small { padding: 6px 12px; font-size: 12px; }
+    .gacha-gem { font-size: 56px; margin: 8px 0; }
+    .gacha-name { font-size: 16px; }
+  }
 </style>
 </head>
 <body>

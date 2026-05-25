@@ -269,6 +269,35 @@
     20% { transform: translate(-50%,-50%) scale(1); opacity:1; }
     100% { transform: translate(-50%,-50%) scale(0.5); opacity:0; }
   }
+
+  /* 짧은 화면 (모달 안) 컴팩트 모드 */
+  @media (max-height: 740px) {
+    .hud { padding: 8px 12px; }
+    .hud-box { padding: 5px 10px; font-size: 11px; }
+    .combo { top: 60px; font-size: 36px; }
+    .judgment { font-size: 32px; }
+    .subtitle { font-size: 14px; margin-bottom: 16px; }
+    .btn { padding: 12px 26px; font-size: 16px; margin: 6px; }
+    .btn-small { padding: 8px 16px; font-size: 13px; }
+    .music-section { padding: 12px; margin-bottom: 14px; }
+    .music-name { font-size: 13px; }
+    .file-btn { padding: 8px 14px; font-size: 12px; }
+    .diff-btn { padding: 8px 14px; font-size: 13px; }
+    .keypad { gap: 6px; padding: 10px; }
+    .key { font-size: 14px; padding: 10px; }
+    .countdown { font-size: 80px; }
+  }
+  @media (max-height: 620px) {
+    .hud { padding: 6px 10px; }
+    .hud-box { padding: 3px 8px; font-size: 10px; }
+    .combo { top: 50px; font-size: 28px; }
+    .subtitle { font-size: 12px; margin-bottom: 10px; }
+    .btn { padding: 10px 22px; font-size: 14px; }
+    .music-section { padding: 8px; margin-bottom: 10px; }
+    .keypad { gap: 4px; padding: 6px; }
+    .key { font-size: 12px; padding: 8px; }
+    .countdown { font-size: 60px; }
+  }
 </style>
 </head>
 <body>
