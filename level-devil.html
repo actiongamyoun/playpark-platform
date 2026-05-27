@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>레벨 데빌 😈</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family: 'Courier New', monospace; }
+  body {
+    background: #1a1a2e;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:none;
+  }
+  #app {
+    width:100%; max-width:480px;
+    height:100vh; height:100dvh;
+    position:relative; overflow:hidden;
+    background: #2c3e50;
+  }
+  canvas { display:block; width:100%; height:100%; touch-action:none; image-rendering: pixelated; image-rendering: crisp-edges; }
+
+  /* HUD */
+  .hud {
+    position:absolute; top:0; left:0; right:0;
+    padding: 10px 12px;
+    display:flex; justify-content:space-between; align-items:center;
+    z-index:10; pointer-events:none;
+  }
+  .hud-box {
+    background: rgba(20,30,50,0.85);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 10px;
+    padding: 5px 12px;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .hud-box.deaths { border-color: #ff5577; color: #ff5577; }
+  .hud-box.level { border-color: #ffbb33; color: #ffbb33; }
+  .hud-box.best { border-color: #44ddff; color: #44ddff; }
+
+  /* 컨트롤 (모바일) */
+  .controls {
+    position: absolute;
+    bottom: 16px; left: 0; right: 0;
+    display: none;
+    justify-content: space-between;
+    padding: 0 16px;
+    z-index: 15;
+    pointer-events: none;
+  }
+  .controls.active { display: flex; }
+  .ctrl-group {
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+  }
+  .ctrl-btn {
+    width: 60px; height: 60px;
+    background: rgba(20,30,50,0.6);
+    backdrop-filter: blur(4px);
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.05s;
+  }
+  .ctrl-btn:active, .ctrl-btn.pressed {
+    transform: scale(0.9);
+    background: rgba(255,255,255,0.2);
+  }
+  .ctrl-btn.jump {
+    width: 75px; height: 75px;
+    border-color: rgba(255,200,80,0.5);
+    background: rgba(255,150,80,0.3);
+    font-size: 26px;
+  }
+
+  /* 시작/결과 화면 */
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(15,20,35,0.95);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 50;
+    color: white;
+    padding: 24px;
+    text-align: center;
+  }
+  .overlay.hidden { display: none; }
+  .title {
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 42px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #ff5577, #ffbb33);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin-bottom: 6px;
+    letter-spacing: -1px;
+    text-shadow: 0 0 30px rgba(255,100,150,0.4);
+  }
+  .subtitle {
+    font-size: 14px; opacity: 0.7;
+    margin-bottom: 24px;
+    line-height: 1.4;
+  }
+  .stats-card {
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 14px 22px;
+    margin: 12px 0 20px;
+    min-width: 220px;
+    font-family: 'Trebuchet MS', sans-serif;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0;
+    font-size: 14px;
+  }
+  .stat-row .label { opacity: 0.7; }
+  .stat-row .value { font-weight: 700; color: #ffbb33; }
+  .btn {
+    background: linear-gradient(135deg, #ff5577, #c2185b);
+    color: white;
+    border: none;
+    padding: 14px 36px;
+    border-radius: 28px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    cursor: pointer;
+    margin: 6px;
+    box-shadow: 0 6px 0 #8b0d3e, 0 8px 20px rgba(255,85,119,0.4);
+    transition: transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #8b0d3e; }
+  .controls-info {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin: 12px 0;
+    font-size: 12px;
+    line-height: 1.7;
+    opacity: 0.8;
+    max-width: 320px;
+    font-family: 'Trebuchet MS', sans-serif;
+  }
+  .controls-info b { color: #ffbb33; }
+
+  /* 레벨 전환 */
+  .level-toast {
+    position: absolute;
+    top: 30%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #ffbb33, #ff5577);
+    color: white;
+    padding: 14px 28px;
+    border-radius: 18px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 22px;
+    font-weight: 900;
+    z-index: 40;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: levelShow 1.5s ease-out forwards;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  }
+  @keyframes levelShow {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+    35% { transform: translate(-50%, -50%) scale(1); }
+    75% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+  }
+
+  /* 데빌 메시지 (트롤) */
+  .devil-msg {
+    position: absolute;
+    top: 60%; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(20,15,30,0.92);
+    color: #ff5577;
+    padding: 8px 18px;
+    border: 2px solid #ff5577;
+    border-radius: 12px;
+    font-family: 'Trebuchet MS', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 35;
+    pointer-events: none;
+    animation: devilMsg 2s ease-out forwards;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(255,85,119,0.4);
+  }
+  @keyframes devilMsg {
+    0% { opacity: 0; transform: translate(-50%, -10px); }
+    15% { opacity: 1; transform: translate(-50%, 0); }
+    85% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -10px); }
+  }
+
+  /* 사운드 토글 */
+  .sound-toggle {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 32px; height: 32px;
+    background: rgba(20,30,50,0.85);
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px;
+    z-index: 60;
+    color: white;
+  }
+
+  @media (max-height: 620px) {
+    .title { font-size: 30px; }
+    .subtitle { font-size: 12px; margin-bottom: 16px; }
+    .stats-card { padding: 10px 16px; }
+    .stat-row { font-size: 12px; }
+    .btn { padding: 10px 26px; font-size: 14px; }
+    .controls-info { font-size: 10px; padding: 8px 14px; }
+    .ctrl-btn { width: 50px; height: 50px; font-size: 20px; }
+    .ctrl-btn.jump { width: 62px; height: 62px; font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas"></canvas>
+
+  <div class="hud">
+    <div class="hud-box level">LEVEL <span id="level-text">1</span>/25</div>
+    <div class="hud-box deaths">💀 <span id="deaths-text">0</span></div>
+    <div class="hud-box best">🏆 <span id="best-text">0</span></div>
+  </div>
+
+  <div class="controls" id="mobile-controls">
+    <div class="ctrl-group">
+      <button class="ctrl-btn" id="btn-left">◀</button>
+      <button class="ctrl-btn" id="btn-right">▶</button>
+    </div>
+    <div class="ctrl-group">
+      <button class="ctrl-btn jump" id="btn-jump">⤴</button>
+    </div>
+  </div>
+
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+
+  <div class="overlay" id="start-screen">
+    <div class="title">😈 LEVEL DEVIL</div>
+    <div class="subtitle">악마의 함정을 피해<br>문에 도달하라!</div>
+    <div class="controls-info">
+      <b>PC</b>: ←→ 이동 / 스페이스 점프<br>
+      <b>모바일</b>: 화면 아래 버튼 사용<br>
+      🚪 문에 닿으면 다음 레벨!
+    </div>
+    <button class="btn" onclick="startGame()">▶ 도전 시작</button>
+  </div>
+
+  <div class="overlay hidden" id="win-screen">
+    <div class="title" style="font-size:32px;">🎉 ALL CLEAR!</div>
+    <div class="subtitle">악마를 이겼다!<br>모든 레벨 클리어!</div>
+    <div class="stats-card">
+      <div class="stat-row"><span class="label">💀 사망 횟수</span><span class="value" id="win-deaths">0</span></div>
+      <div class="stat-row"><span class="label">⏱ 클리어 시간</span><span class="value" id="win-time">0s</span></div>
+      <div class="stat-row"><span class="label">🏆 최저 사망</span><span class="value" id="win-best">0</span></div>
+    </div>
+    <button class="btn" onclick="startGame()">🔄 다시 도전</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// 레벨 데빌 - 트롤 플랫포머
+// ============================================================
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// 게임 상태
+let gameState = 'menu'; // 'menu' | 'playing' | 'win'
+let W = 0, H = 0;
+let lastTime = 0;
+let soundEnabled = true;
+let bgmStarted = false;
+
+// 카메라 (화면 좌표 변환)
+// 게임은 480x800 가상 좌표계 사용, 화면 크기에 맞춰 스케일
+const GAME_W = 480;
+const GAME_H = 800;
+let scale = 1;
+let offsetX = 0, offsetY = 0;
+
+// 플레이어
+const player = {
+  x: 0, y: 0,
+  vx: 0, vy: 0,
+  w: 24, h: 28,
+  onGround: false,
+  facing: 1, // 1 = 오른쪽, -1 = 왼쪽
+  dead: false,
+  deathTimer: 0,
+};
+
+const PLAYER_SPEED = 200;
+const JUMP_VEL = -560;
+const GRAVITY = 1500;
+const MAX_FALL_SPEED = 700;
+
+// 레벨 데이터
+let currentLevel = 0;
+let levels = [];
+let deaths = 0;
+let totalDeaths = 0;
+let startTime = 0;
+let bestDeaths = 0;
+try { bestDeaths = parseInt(localStorage.getItem('devil_best') || '999') || 999; } catch(e) {}
+try {
+  if (localStorage.getItem('devil_sound') === 'off') soundEnabled = false;
+} catch(e) {}
+
+// 입력
+const keys = {};
+const mobileKeys = { left: false, right: false, jump: false };
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+
+// 함정/객체 상태 (레벨 로드 시 초기화)
+let platforms = [];      // {x, y, w, h, type, ...}
+let spikes = [];         // {x, y, w, h, dir}
+let door = null;         // {x, y, w, h}
+let particles = [];
+let cameraShake = 0;
+
+// 트롤 메시지 (각 사망/스테이지 시 랜덤 표시)
+const DEVIL_MESSAGES = [
+  '하하! 너무 쉽지?',
+  '예상 못했지?',
+  '다시 해봐~ 😈',
+  '함정이야!',
+  '속았지롱~',
+  '아쉽다!',
+  '거의 다왔는데... 😏',
+  '한 번 더!',
+  '집중해!',
+  '그게 함정인 줄...',
+];
+
+// ============================================================
+// 사운드
+// ============================================================
+let audioCtx = null;
+let bgmInterval = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+}
+function tone(freq, dur, type, vol) {
+  if (!soundEnabled || !audioCtx) return;
+  type = type || 'sine'; vol = vol || 0.1;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type; osc.frequency.value = freq;
+  const t = audioCtx.currentTime;
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(vol, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + dur);
+}
+function playJump() { tone(440, 0.1, 'square', 0.08); setTimeout(() => tone(660, 0.08, 'square', 0.06), 30); }
+function playLand() { tone(180, 0.06, 'sine', 0.08); }
+function playDeath() {
+  [400, 300, 200, 150].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'sawtooth', 0.1), i * 60));
+}
+function playWin() {
+  [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.12), i * 80));
+}
+function playLevelClear() {
+  [659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'triangle', 0.1), i * 60));
+}
+function playTrap() {
+  if (!soundEnabled || !audioCtx) return;
+  const bufSize = audioCtx.sampleRate * 0.1;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i=0; i<bufSize; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/bufSize*10);
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0.08;
+  noise.connect(gain); gain.connect(audioCtx.destination);
+  noise.start();
+}
+
+// BGM - 음산하지만 신나는 비트
+function startBGM() {
+  if (bgmInterval || !soundEnabled || !audioCtx) return;
+  const BPM = 120;
+  const beat = 60000 / BPM;
+  // E minor 진행
+  const BASS = [
+    { n: 82.41, t: 0 }, { n: 82.41, t: 1 }, { n: 82.41, t: 2 }, { n: 123.47, t: 3 },
+    { n: 87.31, t: 4 }, { n: 87.31, t: 5 }, { n: 87.31, t: 6 }, { n: 130.81, t: 7 },
+    { n: 65.41, t: 8 }, { n: 65.41, t: 9 }, { n: 65.41, t: 10 }, { n: 98, t: 11 },
+    { n: 73.42, t: 12 }, { n: 73.42, t: 13 }, { n: 98, t: 14 }, { n: 110, t: 15 },
+  ];
+  const DRUMS = [];
+  for (let bar = 0; bar < 4; bar++) {
+    const base = bar * 4;
+    DRUMS.push({ type: 'kick', t: base + 0 });
+    DRUMS.push({ type: 'kick', t: base + 2 });
+    DRUMS.push({ type: 'snare', t: base + 1 });
+    DRUMS.push({ type: 'snare', t: base + 3 });
+    for (let i = 0; i < 8; i++) DRUMS.push({ type: 'hihat', t: base + i * 0.5 });
+  }
+  const patternLengthMs = 16 * beat;
+
+  function playBassNote(freq, when) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    const t = audioCtx.currentTime + when;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.04, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass'; filter.frequency.value = 500;
+    osc.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.45);
+  }
+  function playKick(when) {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    const t = audioCtx.currentTime + when;
+    osc.frequency.setValueAtTime(120, t);
+    osc.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t); osc.stop(t + 0.15);
+  }
+  function playSnare(when) {
+    if (!audioCtx) return;
+    const bufSize = audioCtx.sampleRate * 0.1;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i=0; i<bufSize; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/bufSize*8);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'highpass'; filter.frequency.value = 1500;
+    const gain = audioCtx.createGain(); gain.gain.value = 0.06;
+    const t = audioCtx.currentTime + when;
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(t);
+  }
+  function playHihat(when) {
+    if (!audioCtx) return;
+    const bufSize = audioCtx.sampleRate * 0.04;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i=0; i<bufSize; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/bufSize*15);
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buf;
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'highpass'; filter.frequency.value = 7000;
+    const gain = audioCtx.createGain(); gain.gain.value = 0.02;
+    const t = audioCtx.currentTime + when;
+    noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+    noise.start(t);
+  }
+
+  function scheduleBar() {
+    if (!soundEnabled) return;
+    BASS.forEach(note => playBassNote(note.n, (note.t * beat) / 1000));
+    DRUMS.forEach(d => {
+      const when = (d.t * beat) / 1000;
+      if (d.type === 'kick') playKick(when);
+      else if (d.type === 'snare') playSnare(when);
+      else if (d.type === 'hihat') playHihat(when);
+    });
+  }
+  scheduleBar();
+  bgmInterval = setInterval(() => {
+    if (!soundEnabled) { stopBGM(); return; }
+    scheduleBar();
+  }, patternLengthMs);
+}
+function stopBGM() {
+  if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+}
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem('devil_sound', soundEnabled ? 'on' : 'off'); } catch(e) {}
+  document.getElementById('sound-toggle').textContent = soundEnabled ? '🔊' : '🔇';
+  if (soundEnabled) { initAudio(); if (gameState === 'playing') startBGM(); }
+  else stopBGM();
+}
+window.toggleSound = toggleSound;
+
+// ============================================================
+// 레벨 정의
+// ============================================================
+// 각 레벨은 함수: setup(level) - 함정/플랫폼/문 설정
+// 플랫폼 좌표는 480x800 가상 좌표 기준
+// 플레이어 시작: x=60, y=720 (좌하단)
+// 문 위치: 변동
+
+function loadLevel(idx) {
+  platforms = [];
+  spikes = [];
+  particles = [];
+  door = null;
+  
+  // 기본 바닥
+  const FLOOR_Y = 760;
+  const groundDef = { x: 0, y: FLOOR_Y, w: GAME_W, h: 40, type: 'ground' };
+  
+  // 플레이어 위치 초기화
+  player.x = 60;
+  player.y = FLOOR_Y - player.h - 2;
+  player.vx = 0;
+  player.vy = 0;
+  player.dead = false;
+  player.facing = 1;
+  
+  // 레벨별 설정
+  switch(idx) {
+    case 0: // L1 - 튜토리얼: 그냥 걷기
+      platforms = [groundDef];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 1: // L2 - 첫 점프
+      platforms = [
+        groundDef,
+        { x: 200, y: 640, w: 100, h: 20 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 2: // L3 - 두 칸 점프
+      platforms = [
+        groundDef,
+        { x: 150, y: 660, w: 90, h: 20 },
+        { x: 290, y: 570, w: 90, h: 20 },
+      ];
+      door = { x: 310, y: 520, w: 32, h: 50 };
+      break;
+    
+    case 3: // L4 - 첫 트롤! 바닥이 사라짐
+      platforms = [
+        groundDef,
+        { x: 200, y: 640, w: 100, h: 20, type: 'fall', fallAt: 0.3 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 4: // L5 - 바닥 구멍 (가짜)
+      platforms = [
+        { x: 0, y: FLOOR_Y, w: 180, h: 40 },
+        { x: 180, y: FLOOR_Y, w: 120, h: 40, type: 'fall', fallAt: 0.2 },
+        { x: 300, y: FLOOR_Y, w: GAME_W - 300, h: 40 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 5: // L6 - 가시!
+      platforms = [groundDef];
+      spikes = [
+        { x: 220, y: FLOOR_Y - 16, w: 32, h: 16 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 6: // L7 - 가시 + 플랫폼
+      platforms = [
+        groundDef,
+        { x: 200, y: 660, w: 90, h: 20 },
+        { x: 320, y: 570, w: 90, h: 20 },
+      ];
+      spikes = [
+        { x: 200, y: FLOOR_Y - 16, w: 80, h: 16 },
+      ];
+      door = { x: 340, y: 520, w: 32, h: 50 };
+      break;
+    
+    case 7: // L8 - 움직이는 가시
+      platforms = [groundDef];
+      spikes = [
+        { x: 150, y: FLOOR_Y - 16, w: 32, h: 16, moveX: true, moveRange: 200, moveSpeed: 100, baseX: 150 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 8: // L9 - 천장이 떨어짐 (가짜 경고)
+      platforms = [
+        groundDef,
+        { x: 0, y: 0, w: GAME_W, h: 30, type: 'ceilingFall', triggerX: 200, fallSpeed: 0, falling: false },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 9: // L10 - 사라지는 플랫폼 연속
+      platforms = [
+        groundDef,
+        { x: 130, y: 660, w: 70, h: 20, type: 'fall', fallAt: 0.4 },
+        { x: 260, y: 580, w: 70, h: 20, type: 'fall', fallAt: 0.4 },
+      ];
+      door = { x: 380, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 10: // L11 - 문이 도망감!
+      platforms = [groundDef];
+      door = { x: GAME_W - 100, y: FLOOR_Y - 50, w: 32, h: 50, runAway: true, runAt: 100 };
+      break;
+    
+    case 11: // L12 - 위에서 떨어지는 가시
+      platforms = [
+        groundDef,
+        { x: 200, y: 540, w: 100, h: 20 },
+      ];
+      spikes = [
+        { x: 220, y: -30, w: 24, h: 24, dropping: true, triggerY: 600, baseX: 220 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 12: // L13 - 점프하면 천장 떨어짐
+      platforms = [
+        groundDef,
+        { x: 0, y: 80, w: GAME_W, h: 30, type: 'ceilingFall', triggerOnJump: true, falling: false, fallSpeed: 0 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 13: // L14 - 가시 + 사라지는 바닥
+      platforms = [
+        { x: 0, y: FLOOR_Y, w: 150, h: 40 },
+        { x: 150, y: FLOOR_Y, w: 100, h: 40, type: 'fall', fallAt: 0.3 },
+        { x: 250, y: FLOOR_Y, w: GAME_W - 250, h: 40 },
+        { x: 280, y: 640, w: 100, h: 20 },
+      ];
+      spikes = [
+        { x: 280, y: FLOOR_Y - 16, w: 100, h: 16 },
+      ];
+      door = { x: 320, y: 590, w: 32, h: 50 };
+      break;
+    
+    case 14: // L15 - 멀리뛰기 함정 (시도하면 가시)
+      platforms = [
+        { x: 0, y: FLOOR_Y, w: 180, h: 40 },
+        { x: 350, y: FLOOR_Y, w: GAME_W - 350, h: 40 },
+        { x: 0, y: 580, w: GAME_W, h: 20 }, // 위 통로
+      ];
+      spikes = [
+        { x: 180, y: FLOOR_Y - 16, w: 170, h: 16 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 15: // L16 - 워프 첫 등장!
+      platforms = [groundDef];
+      // 워프는 portal로 표현
+      portals.push({ x: 200, y: FLOOR_Y - 60, w: 32, h: 40, color: '#a855f7', destX: 60, destY: FLOOR_Y - 50 });
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 16: // L17 - 워프가 함정
+      platforms = [groundDef];
+      portals.push({ x: 220, y: FLOOR_Y - 60, w: 32, h: 40, color: '#a855f7', destX: 220, destY: 100 }); // 위로 보내서 떨어지게
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      // 떨어지는 곳에 가시
+      spikes = [
+        { x: 200, y: FLOOR_Y - 16, w: 80, h: 16 },
+      ];
+      break;
+    
+    case 17: // L18 - 보이지 않는 함정
+      platforms = [
+        groundDef,
+        { x: 100, y: 640, w: 80, h: 20 },
+        { x: 240, y: 560, w: 80, h: 20, type: 'invisible' },
+        { x: 360, y: 480, w: 80, h: 20 },
+      ];
+      door = { x: 380, y: 430, w: 32, h: 50 };
+      break;
+    
+    case 18: // L19 - 가시 미로
+      platforms = [groundDef];
+      spikes = [
+        { x: 100, y: FLOOR_Y - 16, w: 30, h: 16 },
+        { x: 170, y: FLOOR_Y - 16, w: 30, h: 16, moveY: true, moveRange: 30, moveSpeed: 60, baseY: FLOOR_Y - 16 },
+        { x: 250, y: FLOOR_Y - 16, w: 30, h: 16 },
+        { x: 320, y: FLOOR_Y - 16, w: 30, h: 16, moveX: true, moveRange: 30, moveSpeed: 80, baseX: 320 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 19: // L20 - 점프대 트롤 (튕겨서 천장 가시로)
+      platforms = [
+        groundDef,
+        { x: 0, y: 30, w: GAME_W, h: 20 },
+      ];
+      // 점프대
+      bouncers.push({ x: 220, y: FLOOR_Y - 12, w: 40, h: 12, power: -900 });
+      spikes = [
+        { x: 200, y: 50, w: 80, h: 20, dir: 'down' },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 20: // L21 - 떨어지는 바닥 + 가시
+      platforms = [
+        { x: 0, y: FLOOR_Y, w: 80, h: 40 },
+        { x: 100, y: FLOOR_Y, w: 80, h: 40, type: 'fall', fallAt: 0.2 },
+        { x: 200, y: FLOOR_Y, w: 80, h: 40, type: 'fall', fallAt: 0.2 },
+        { x: 300, y: FLOOR_Y, w: 80, h: 40 },
+        { x: 400, y: FLOOR_Y, w: 80, h: 40 },
+      ];
+      spikes = [
+        { x: 300, y: FLOOR_Y - 16, w: 30, h: 16 },
+      ];
+      door = { x: GAME_W - 50, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 21: // L22 - 동시 함정
+      platforms = [
+        groundDef,
+        { x: 200, y: 640, w: 100, h: 20, type: 'fall', fallAt: 0.3 },
+      ];
+      spikes = [
+        { x: 100, y: -30, w: 24, h: 24, dropping: true, triggerY: 700, baseX: 100 },
+        { x: 350, y: -30, w: 24, h: 24, dropping: true, triggerY: 700, baseX: 350 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 22: // L23 - 좁은 통로 + 움직이는 가시
+      platforms = [
+        groundDef,
+        { x: 0, y: 580, w: 360, h: 20 },
+      ];
+      spikes = [
+        { x: 100, y: FLOOR_Y - 16, w: 30, h: 16, moveX: true, moveRange: 240, moveSpeed: 120, baseX: 100 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 23: // L24 - 보스급! 모든 함정
+      platforms = [
+        { x: 0, y: FLOOR_Y, w: 130, h: 40 },
+        { x: 130, y: FLOOR_Y, w: 100, h: 40, type: 'fall', fallAt: 0.3 },
+        { x: 230, y: FLOOR_Y, w: GAME_W - 230, h: 40 },
+        { x: 200, y: 580, w: 100, h: 20, type: 'invisible' },
+        { x: 0, y: 30, w: GAME_W, h: 20, type: 'ceilingFall', triggerX: 350, falling: false, fallSpeed: 0 },
+      ];
+      spikes = [
+        { x: 230, y: FLOOR_Y - 16, w: 60, h: 16 },
+        { x: 380, y: -30, w: 24, h: 24, dropping: true, triggerY: 700, baseX: 380 },
+      ];
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+    
+    case 24: // L25 - 마지막! 페이크 문
+      platforms = [
+        groundDef,
+        { x: 200, y: 640, w: 100, h: 20 },
+      ];
+      spikes = [
+        { x: 250, y: FLOOR_Y - 16, w: 30, h: 16, moveX: true, moveRange: 100, moveSpeed: 150, baseX: 250 },
+      ];
+      // 가짜 문 (가운데)
+      portals.push({ x: 224, y: 590, w: 32, h: 50, color: '#dc2626', destX: 240, destY: 100, fake: true });
+      // 진짜 문 (구석)
+      door = { x: GAME_W - 60, y: FLOOR_Y - 50, w: 32, h: 50 };
+      break;
+  }
+}
+
+let portals = [];
+let bouncers = [];
+
+function startLevel() {
+  portals = [];
+  bouncers = [];
+  loadLevel(currentLevel);
+  updateHUD();
+  
+  // 레벨 메시지
+  showLevelToast('LEVEL ' + (currentLevel + 1));
+  
+  // 트롤 메시지 (3레벨 이후만, 가끔)
+  if (currentLevel >= 3 && Math.random() < 0.4) {
+    setTimeout(() => {
+      showDevilMsg(DEVIL_MESSAGES[Math.floor(Math.random() * DEVIL_MESSAGES.length)]);
+    }, 1700);
+  }
+}
+
+function showLevelToast(text) {
+  const toast = document.createElement('div');
+  toast.className = 'level-toast';
+  toast.textContent = text;
+  document.getElementById('app').appendChild(toast);
+  setTimeout(() => toast.remove(), 1500);
+}
+
+function showDevilMsg(text) {
+  const msg = document.createElement('div');
+  msg.className = 'devil-msg';
+  msg.textContent = '😈 ' + text;
+  document.getElementById('app').appendChild(msg);
+  setTimeout(() => msg.remove(), 2000);
+}
+
+// ============================================================
+// 게임 시작
+// ============================================================
+function startGame() {
+  initAudio();
+  if (soundEnabled && !bgmStarted) { startBGM(); bgmStarted = true; }
+  
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('win-screen').classList.add('hidden');
+  
+  gameState = 'playing';
+  currentLevel = 0;
+  deaths = 0;
+  totalDeaths = 0;
+  startTime = performance.now();
+  
+  if (isTouch) {
+    document.getElementById('mobile-controls').classList.add('active');
+  }
+  
+  startLevel();
+}
+window.startGame = startGame;
+
+function nextLevel() {
+  currentLevel++;
+  if (currentLevel >= 25) {
+    winGame();
+    return;
+  }
+  playLevelClear();
+  startLevel();
+}
+
+function die() {
+  if (player.dead) return;
+  player.dead = true;
+  player.deathTimer = 0.6;
+  deaths++;
+  totalDeaths++;
+  cameraShake = 8;
+  playDeath();
+  // 파티클 (별)
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 120 + Math.random() * 100;
+    particles.push({
+      x: player.x + player.w/2,
+      y: player.y + player.h/2,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 100,
+      life: 0.7,
+      maxLife: 0.7,
+      size: 14,
+      color: '#fbbf24',
+      isStar: true,
+    });
+  }
+  updateHUD();
+}
+
+function winGame() {
+  gameState = 'win';
+  document.getElementById('mobile-controls').classList.remove('active');
+  
+  const time = Math.round((performance.now() - startTime) / 1000);
+  if (totalDeaths < bestDeaths) {
+    bestDeaths = totalDeaths;
+    try { localStorage.setItem('devil_best', bestDeaths); } catch(e) {}
+  }
+  
+  document.getElementById('win-deaths').textContent = totalDeaths;
+  document.getElementById('win-time').textContent = time + 's';
+  document.getElementById('win-best').textContent = bestDeaths === 999 ? '-' : bestDeaths;
+  document.getElementById('win-screen').classList.remove('hidden');
+  playWin();
+}
+
+// ============================================================
+// 입력
+// ============================================================
+window.addEventListener('keydown', (e) => {
+  keys[e.key.toLowerCase()] = true;
+  if ([' ', 'arrowup', 'arrowleft', 'arrowright', 'arrowdown', 'w', 'a', 's', 'd'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+});
+window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+// 모바일 버튼
+function setupBtn(id, key) {
+  const btn = document.getElementById(id);
+  const start = (e) => { e.preventDefault(); mobileKeys[key] = true; btn.classList.add('pressed'); initAudio(); if (soundEnabled && !bgmStarted && gameState === 'playing') { startBGM(); bgmStarted = true; } };
+  const end = (e) => { e.preventDefault(); mobileKeys[key] = false; btn.classList.remove('pressed'); };
+  btn.addEventListener('touchstart', start, { passive: false });
+  btn.addEventListener('touchend', end, { passive: false });
+  btn.addEventListener('touchcancel', end);
+  btn.addEventListener('mousedown', start);
+  btn.addEventListener('mouseup', end);
+  btn.addEventListener('mouseleave', end);
+}
+setupBtn('btn-left', 'left');
+setupBtn('btn-right', 'right');
+setupBtn('btn-jump', 'jump');
+
+// ============================================================
+// 리사이즈
+// ============================================================
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  W = rect.width;
+  H = rect.height;
+  canvas.width = W * (window.devicePixelRatio || 1);
+  canvas.height = H * (window.devicePixelRatio || 1);
+  ctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
+  // 게임 좌표 → 화면 좌표 스케일 (480x800 가상)
+  const scaleX = W / GAME_W;
+  const scaleY = H / GAME_H;
+  scale = Math.min(scaleX, scaleY);
+  offsetX = (W - GAME_W * scale) / 2;
+  offsetY = (H - GAME_H * scale) / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// 업데이트
+// ============================================================
+function update(dt) {
+  if (gameState !== 'playing') return;
+  
+  if (cameraShake > 0) cameraShake -= dt * 30;
+  
+  // 사망 후 부활 대기
+  if (player.dead) {
+    player.deathTimer -= dt;
+    if (player.deathTimer <= 0) {
+      // 부활
+      startLevel();
+    }
+    // 파티클만 업데이트
+    updateParticles(dt);
+    return;
+  }
+  
+  // 입력
+  let moveX = 0;
+  if (keys['arrowleft'] || keys['a'] || mobileKeys.left) moveX -= 1;
+  if (keys['arrowright'] || keys['d'] || mobileKeys.right) moveX += 1;
+  
+  player.vx = moveX * PLAYER_SPEED;
+  if (moveX !== 0) player.facing = moveX > 0 ? 1 : -1;
+  
+  // 점프
+  const jumpPressed = keys[' '] || keys['arrowup'] || keys['w'] || mobileKeys.jump;
+  if (jumpPressed && player.onGround) {
+    player.vy = JUMP_VEL;
+    player.onGround = false;
+    playJump();
+    // 천장 떨어짐 트리거 (점프 시)
+    for (const p of platforms) {
+      if (p.type === 'ceilingFall' && p.triggerOnJump && !p.falling) {
+        p.falling = true;
+        playTrap();
+      }
+    }
+  }
+  
+  // 중력
+  player.vy += GRAVITY * dt;
+  if (player.vy > MAX_FALL_SPEED) player.vy = MAX_FALL_SPEED;
+  
+  // 수평 이동 + 충돌
+  player.x += player.vx * dt;
+  // 벽 체크
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.w > GAME_W) player.x = GAME_W - player.w;
+  
+  // 수평 충돌 (플랫폼)
+  for (const p of platforms) {
+    if (p.removed) continue;
+    if (p.type === 'invisible' && !p.revealed) continue;
+    if (rectIntersect(player, p)) {
+      // 측면 충돌
+      if (player.vx > 0) player.x = p.x - player.w;
+      else if (player.vx < 0) player.x = p.x + p.w;
+      player.vx = 0;
+    }
+  }
+  
+  // 수직 이동
+  const prevY = player.y;
+  player.y += player.vy * dt;
+  player.onGround = false;
+  
+  // 수직 충돌
+  for (const p of platforms) {
+    if (p.removed) continue;
+    if (p.type === 'invisible' && !p.revealed) {
+      // 보이지 않는 플랫폼도 충돌은 함 (하지만 시각적으로 안 보임)
+      // → 사실 안 밟히면 더 어려우니까, 일단 충돌 처리하고 닿으면 드러나게
+      if (rectIntersect(player, p) && player.vy > 0 && prevY + player.h <= p.y + 5) {
+        p.revealed = true;
+        player.y = p.y - player.h;
+        player.vy = 0;
+        player.onGround = true;
+        playLand();
+        continue;
+      }
+      continue;
+    }
+    
+    // 떨어지는 천장 처리
+    if (p.type === 'ceilingFall') {
+      if (p.falling) {
+        p.fallSpeed += GRAVITY * 0.7 * dt;
+        p.y += p.fallSpeed * dt;
+      } else if (p.triggerX !== undefined && player.x > p.triggerX) {
+        p.falling = true;
+        playTrap();
+      }
+      // 충돌하면 사망
+      if (rectIntersect(player, p)) {
+        die();
+        return;
+      }
+      continue;
+    }
+    
+    if (rectIntersect(player, p)) {
+      if (player.vy > 0 && prevY + player.h <= p.y + 5) {
+        // 위에서 착지
+        player.y = p.y - player.h;
+        player.vy = 0;
+        if (!player.onGround) playLand();
+        player.onGround = true;
+        // 사라지는 바닥 트리거
+        if (p.type === 'fall' && !p.triggered) {
+          p.triggered = true;
+          p.fallTimer = p.fallAt || 0.3;
+        }
+      } else if (player.vy < 0) {
+        // 아래에서 머리 박음
+        player.y = p.y + p.h;
+        player.vy = 0;
+      }
+    }
+  }
+  
+  // 사라지는 바닥 타이머
+  for (const p of platforms) {
+    if (p.type === 'fall' && p.triggered && !p.removed) {
+      p.fallTimer -= dt;
+      if (p.fallTimer <= 0.15) p.shaking = true;
+      if (p.fallTimer <= 0) {
+        p.removed = true;
+        playTrap();
+      }
+    }
+  }
+  
+  // 가시 업데이트 (움직임)
+  for (const s of spikes) {
+    if (s.moveX) {
+      const t = performance.now() / 1000;
+      s.x = s.baseX + Math.sin(t * s.moveSpeed / 50) * s.moveRange;
+    }
+    if (s.moveY) {
+      const t = performance.now() / 1000;
+      s.y = s.baseY + Math.sin(t * s.moveSpeed / 50) * s.moveRange;
+    }
+    if (s.dropping) {
+      if (!s.fallingNow && player.y > 200 && player.x > s.baseX - 40 && player.x < s.baseX + 60) {
+        // 플레이어가 가까이 오면 떨어짐
+        if (player.y > (s.triggerY || 700) - 100) {
+          s.fallingNow = true;
+          playTrap();
+        }
+      }
+      if (s.fallingNow) {
+        s.vy = (s.vy || 0) + GRAVITY * 0.8 * dt;
+        s.y += s.vy * dt;
+        if (s.y > 800) {
+          // 다시 위로 (반복)
+          s.y = -30;
+          s.vy = 0;
+          s.fallingNow = false;
+        }
+      }
+    }
+    if (rectIntersect(player, s)) {
+      die();
+      return;
+    }
+  }
+  
+  // 점프대
+  for (const b of bouncers) {
+    if (rectIntersect(player, b) && player.vy > 0) {
+      player.vy = b.power;
+      playJump();
+    }
+  }
+  
+  // 워프
+  for (const portal of portals) {
+    if (rectIntersect(player, portal) && !portal.used) {
+      portal.used = true;
+      player.x = portal.destX;
+      player.y = portal.destY;
+      player.vy = 0;
+      playTrap();
+      // 사용 후 잠시 후 다시 사용 가능
+      setTimeout(() => { portal.used = false; }, 800);
+    }
+  }
+  
+  // 추락사
+  if (player.y > GAME_H + 50) {
+    die();
+    return;
+  }
+  
+  // 문에 도달!
+  if (door && rectIntersect(player, door)) {
+    if (door.runAway && !door.ranAway) {
+      // 도망가는 문
+      door.x = -100;
+      door.ranAway = true;
+      // 진짜 문은 정반대 끝에
+      setTimeout(() => {
+        door.x = 28;
+        door.y = 760 - 50;
+      }, 100);
+      showDevilMsg('어딜~ 😈');
+    } else {
+      nextLevel();
+      return;
+    }
+  }
+  
+  updateParticles(dt);
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 500 * dt;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function rectIntersect(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x &&
+         a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function updateHUD() {
+  document.getElementById('level-text').textContent = currentLevel + 1;
+  document.getElementById('deaths-text').textContent = totalDeaths;
+  document.getElementById('best-text').textContent = bestDeaths === 999 ? '-' : bestDeaths;
+}
+
+// ============================================================
+// 렌더링
+// ============================================================
+function render() {
+  // 배경
+  ctx.fillStyle = '#2c3e50';
+  ctx.fillRect(0, 0, W, H);
+  
+  ctx.save();
+  // 가상 좌표 → 화면 좌표 변환
+  const shakeX = cameraShake > 0 ? (Math.random() - 0.5) * cameraShake : 0;
+  const shakeY = cameraShake > 0 ? (Math.random() - 0.5) * cameraShake : 0;
+  ctx.translate(offsetX + shakeX, offsetY + shakeY);
+  ctx.scale(scale, scale);
+  
+  // 게임 영역 배경
+  ctx.fillStyle = '#34495e';
+  ctx.fillRect(0, 0, GAME_W, GAME_H);
+  
+  // 격자 패턴
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < GAME_W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, GAME_H); ctx.stroke();
+  }
+  for (let y = 0; y < GAME_H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(GAME_W, y); ctx.stroke();
+  }
+  
+  if (gameState === 'playing' || gameState === 'win') {
+    // 플랫폼
+    for (const p of platforms) {
+      if (p.removed) continue;
+      if (p.type === 'invisible' && !p.revealed) continue;
+      
+      let color = '#4a5568';
+      let topColor = '#5a6878';
+      if (p.type === 'fall') {
+        color = p.shaking ? '#ff6b6b' : '#7c3a3a';
+        topColor = p.shaking ? '#ff9999' : '#8c4a4a';
+      } else if (p.type === 'ceilingFall' && p.falling) {
+        color = '#dc2626';
+        topColor = '#ef4444';
+      } else if (p.type === 'ceilingFall') {
+        color = '#4a5568';
+        topColor = '#5a6878';
+      }
+      
+      // 흔들림
+      let dx = 0, dy = 0;
+      if (p.shaking) {
+        dx = (Math.random() - 0.5) * 3;
+        dy = (Math.random() - 0.5) * 3;
+      }
+      
+      ctx.fillStyle = color;
+      ctx.fillRect(p.x + dx, p.y + dy, p.w, p.h);
+      // 윗면 하이라이트
+      ctx.fillStyle = topColor;
+      ctx.fillRect(p.x + dx, p.y + dy, p.w, 3);
+    }
+    
+    // 워프
+    for (const portal of portals) {
+      const t = performance.now() / 1000;
+      const pulse = 0.7 + Math.sin(t * 4) * 0.3;
+      // 후광
+      const grad = ctx.createRadialGradient(
+        portal.x + portal.w/2, portal.y + portal.h/2, 0,
+        portal.x + portal.w/2, portal.y + portal.h/2, 40
+      );
+      grad.addColorStop(0, portal.color + 'cc');
+      grad.addColorStop(1, portal.color + '00');
+      ctx.fillStyle = grad;
+      ctx.fillRect(portal.x - 20, portal.y - 20, portal.w + 40, portal.h + 40);
+      // 본체
+      ctx.fillStyle = portal.color;
+      ctx.globalAlpha = pulse;
+      ctx.fillRect(portal.x, portal.y, portal.w, portal.h);
+      ctx.globalAlpha = 1;
+      // 소용돌이
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(portal.x + portal.w/2, portal.y + portal.h/2, 8, t * 4, t * 4 + Math.PI * 1.5);
+      ctx.stroke();
+    }
+    
+    // 점프대
+    for (const b of bouncers) {
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(b.x, b.y, b.w, 3);
+      // ↑ 아이콘
+      ctx.fillStyle = '#92400e';
+      ctx.font = 'bold 16px Trebuchet MS';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('↑', b.x + b.w/2, b.y + b.h/2);
+    }
+    
+    // 가시
+    for (const s of spikes) {
+      drawSpikes(s);
+    }
+    
+    // 문
+    if (door) {
+      // 빛
+      const t = performance.now() / 1000;
+      const glow = 0.6 + Math.sin(t * 3) * 0.2;
+      const grad = ctx.createRadialGradient(
+        door.x + door.w/2, door.y + door.h/2, 0,
+        door.x + door.w/2, door.y + door.h/2, 50
+      );
+      grad.addColorStop(0, `rgba(255,200,80,${0.4 * glow})`);
+      grad.addColorStop(1, 'rgba(255,200,80,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(door.x - 30, door.y - 30, door.w + 60, door.h + 60);
+      // 문 프레임
+      ctx.fillStyle = '#4a3c2a';
+      ctx.fillRect(door.x, door.y, door.w, door.h);
+      // 문 내부
+      ctx.fillStyle = '#8b6f47';
+      ctx.fillRect(door.x + 3, door.y + 3, door.w - 6, door.h - 6);
+      // 손잡이
+      ctx.fillStyle = '#ffbb33';
+      ctx.beginPath();
+      ctx.arc(door.x + door.w - 8, door.y + door.h / 2, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // 플레이어
+    if (!player.dead) {
+      drawPlayer(player.x, player.y, player.w, player.h, player.facing);
+    }
+    
+    // 파티클
+    for (const p of particles) {
+      const alpha = p.life / p.maxLife;
+      if (p.isStar) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.font = p.size + 'px serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('✨', p.x, p.y);
+        ctx.restore();
+      }
+    }
+  }
+  
+  ctx.restore();
+}
+
+function drawSpikes(s) {
+  if (s.dir === 'down') {
+    // 천장 가시 (아래로 향함)
+    ctx.fillStyle = '#dc2626';
+    const count = Math.floor(s.w / 12);
+    const sw = s.w / count;
+    for (let i = 0; i < count; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s.x + i * sw, s.y);
+      ctx.lineTo(s.x + (i + 0.5) * sw, s.y + s.h);
+      ctx.lineTo(s.x + (i + 1) * sw, s.y);
+      ctx.fill();
+    }
+  } else {
+    // 바닥 가시 (위로 향함)
+    ctx.fillStyle = '#dc2626';
+    const count = Math.floor(s.w / 12);
+    const sw = s.w / count;
+    for (let i = 0; i < count; i++) {
+      ctx.beginPath();
+      ctx.moveTo(s.x + i * sw, s.y + s.h);
+      ctx.lineTo(s.x + (i + 0.5) * sw, s.y);
+      ctx.lineTo(s.x + (i + 1) * sw, s.y + s.h);
+      ctx.fill();
+    }
+  }
+}
+
+function drawPlayer(x, y, w, h, facing) {
+  // 그림자
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(x + w/2, y + h + 2, w/2, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // 토끼 캐릭터
+  ctx.save();
+  ctx.translate(x + w/2, y + h/2);
+  if (facing < 0) ctx.scale(-1, 1);
+  
+  // 몸
+  ctx.fillStyle = '#f0e6d2';
+  ctx.fillRect(-w/2 + 2, -h/2 + 6, w - 4, h - 6);
+  // 윗 부분 (둥글게)
+  ctx.beginPath();
+  ctx.arc(0, -h/2 + 8, w/2 - 2, Math.PI, 0);
+  ctx.fill();
+  // 귀
+  ctx.fillStyle = '#f0e6d2';
+  ctx.fillRect(-7, -h/2 - 6, 4, 10);
+  ctx.fillRect(3, -h/2 - 6, 4, 10);
+  // 귀 안쪽
+  ctx.fillStyle = '#ffb6d9';
+  ctx.fillRect(-6, -h/2 - 4, 2, 6);
+  ctx.fillRect(4, -h/2 - 4, 2, 6);
+  // 눈
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(-4, -2, 2, 3);
+  ctx.fillRect(2, -2, 2, 3);
+  // 코
+  ctx.fillStyle = '#ff7eb8';
+  ctx.fillRect(-1, 2, 2, 2);
+  // 다리 (간단)
+  ctx.fillStyle = '#e0d3bd';
+  ctx.fillRect(-5, h/2 - 4, 4, 4);
+  ctx.fillRect(1, h/2 - 4, 4, 4);
+  
+  ctx.restore();
+}
+
+// ============================================================
+// 게임 루프
+// ============================================================
+function loop(now) {
+  if (!lastTime) lastTime = now;
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  update(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+document.getElementById('sound-toggle').textContent = soundEnabled ? '🔊' : '🔇';
+
+console.log('Level Devil loaded');
+</script>
+</body>
+</html>
