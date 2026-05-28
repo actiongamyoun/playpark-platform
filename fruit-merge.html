@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>과일 퐁당 🍉</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#fff4e0; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#fff8ec 0%,#ffeccc 100%); display:flex; flex-direction:column; }
+  .header { padding:12px 16px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .title { font-size:22px; font-weight:900; color:#e07a3c; }
+  .scores { display:flex; gap:8px; }
+  .score-box { background:rgba(255,255,255,0.8); border-radius:12px; padding:5px 12px; text-align:center; border:2px solid #e07a3c; }
+  .score-box .label { font-size:9px; font-weight:700; color:#f0a060; letter-spacing:1px; }
+  .score-box .value { font-size:17px; font-weight:900; color:#e07a3c; }
+  .next-bar { padding:0 16px 6px; display:flex; align-items:center; gap:8px; justify-content:center; font-size:13px; color:#b06030; font-weight:700; }
+  .next-fruit { font-size:24px; }
+  .game-area { flex:1; display:flex; align-items:center; justify-content:center; padding:8px; }
+  canvas { background:rgba(255,255,255,0.5); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,0.1); touch-action:none; }
+  .overlay { position:absolute; inset:0; background:rgba(224,122,60,0.92); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:white; padding:24px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:60px; margin-bottom:8px; }
+  .o-title { font-size:32px; font-weight:900; margin-bottom:6px; }
+  .o-sub { font-size:14px; opacity:0.9; margin-bottom:18px; line-height:1.5; }
+  .o-score { font-size:44px; font-weight:900; color:#ffe066; margin:8px 0; }
+  .fruit-guide { font-size:22px; letter-spacing:2px; margin-bottom:14px; }
+  .btn { background:#ffe066; color:#e07a3c; border:none; padding:14px 36px; border-radius:28px; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer; margin:6px; box-shadow:0 5px 0 #d4b840; transition:transform 0.1s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #d4b840; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(255,255,255,0.7); border:2px solid #e07a3c; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#1a120d !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,169,77,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(249,115,22,0.15), transparent 45%),
+      linear-gradient(180deg, #1a120d 0%, #1a120d 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #ffa94d, #f97316) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(255,169,77,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="title">🍉 과일 퐁당</div>
+    <div class="scores">
+      <div class="score-box"><div class="label">점수</div><div class="value" id="score">0</div></div>
+      <div class="score-box"><div class="label">최고</div><div class="value" id="best">0</div></div>
+    </div>
+  </div>
+  <div class="next-bar">다음: <span class="next-fruit" id="next-fruit">🍒</span></div>
+  <div class="game-area"><canvas id="canvas"></canvas></div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🍉</div>
+    <div class="o-title">과일 퐁당</div>
+    <div class="fruit-guide">🍒→🍓→🍇→🍊→🍎→🍐→🍑→🍍→🥥→🍉</div>
+    <div class="o-sub">같은 과일이 닿으면 합쳐져요!<br>큰 과일을 만들어보세요<br>위로 넘치면 끝!</div>
+    <button class="btn" onclick="startGame()">▶ 시작</button>
+  </div>
+  <div class="overlay hidden" id="gameover-screen">
+    <div class="big-emoji">💥</div>
+    <div class="o-title">게임 오버!</div>
+    <div class="o-score" id="final-score">0</div>
+    <div class="o-sub">가장 큰 과일: <span id="final-fruit" style="font-size:28px;">🍒</span></div>
+    <button class="btn" onclick="startGame()">🔄 다시</button>
+  </div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+// 과일 정의 (레벨, 반지름, 이모지, 색, 점수)
+const FRUITS=[
+  {emoji:'🍒',r:14,color:'#e63946',score:1},
+  {emoji:'🍓',r:20,color:'#ff5d8f',score:3},
+  {emoji:'🍇',r:27,color:'#9b5de5',score:6},
+  {emoji:'🍊',r:34,color:'#ff9e00',score:10},
+  {emoji:'🍎',r:42,color:'#e63946',score:15},
+  {emoji:'🍐',r:50,color:'#a7c957',score:21},
+  {emoji:'🍑',r:58,color:'#ffb4a2',score:28},
+  {emoji:'🍍',r:68,color:'#ffd60a',score:36},
+  {emoji:'🥥',r:78,color:'#8d6e63',score:45},
+  {emoji:'🍉',r:90,color:'#06d6a0',score:55},
+];
+let W=300,H=400;
+let fruits=[], score=0, best=0, gameState='menu';
+let currentFruitLevel=0, nextFruitLevel=0, dropX=150, canDrop=true, dropCooldown=0;
+let overflowTimer=0;
+let soundEnabled=true;
+const GRAVITY=900, DAMP=0.6, FRICTION=0.98;
+try{ best=parseInt(localStorage.getItem('fruit_best')||'0')||0; if(localStorage.getItem('fruit_sound')==='off')soundEnabled=false; }catch(e){best=0;}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playDrop(){ tone(400,0.06,'sine',0.06); }
+function playMerge(level){ const base=400+level*60; tone(base,0.1,'triangle',0.1); setTimeout(()=>tone(base*1.5,0.1,'triangle',0.08),50); }
+function playGameOver(){ [400,300,200].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sawtooth',0.1),i*100)); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('fruit_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+function resize(){
+  const area=canvas.parentElement.getBoundingClientRect();
+  W=Math.min(area.width-16,340);
+  H=Math.min(area.height-16,W*1.3);
+  canvas.width=W; canvas.height=H;
+}
+window.addEventListener('resize',()=>{resize();});
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  resize();
+  fruits=[]; score=0; gameState='playing';
+  currentFruitLevel=Math.floor(Math.random()*3);
+  nextFruitLevel=Math.floor(Math.random()*3);
+  dropX=W/2; canDrop=true; dropCooldown=0; overflowTimer=0;
+  updateScore(); updateNext();
+}
+window.startGame=startGame;
+
+function updateScore(){
+  document.getElementById('score').textContent=score.toLocaleString();
+  if(score>best){ best=score; try{localStorage.setItem('fruit_best',best);}catch(e){} }
+  document.getElementById('best').textContent=best.toLocaleString();
+}
+function updateNext(){ document.getElementById('next-fruit').textContent=FRUITS[nextFruitLevel].emoji; }
+
+function dropFruit(){
+  if(!canDrop||gameState!=='playing')return;
+  const f=FRUITS[currentFruitLevel];
+  fruits.push({ x:dropX, y:f.r+10, vx:0, vy:0, level:currentFruitLevel, r:f.r, merged:false });
+  playDrop();
+  canDrop=false; dropCooldown=0.5;
+  currentFruitLevel=nextFruitLevel;
+  nextFruitLevel=Math.floor(Math.random()*Math.min(5,3+Math.floor(score/100)));
+  updateNext();
+}
+
+function pointerX(clientX){
+  const rect=canvas.getBoundingClientRect();
+  let x=clientX-rect.left;
+  const r=FRUITS[currentFruitLevel].r;
+  return Math.max(r+4,Math.min(W-r-4,x));
+}
+canvas.addEventListener('mousemove',(e)=>{ if(gameState==='playing')dropX=pointerX(e.clientX); });
+canvas.addEventListener('mousedown',(e)=>{ initAudio(); if(gameState==='playing'){dropX=pointerX(e.clientX); dropFruit();} });
+canvas.addEventListener('touchmove',(e)=>{ e.preventDefault(); if(gameState==='playing')dropX=pointerX(e.touches[0].clientX); },{passive:false});
+canvas.addEventListener('touchstart',(e)=>{ e.preventDefault(); initAudio(); if(gameState==='playing'){dropX=pointerX(e.touches[0].clientX);} },{passive:false});
+canvas.addEventListener('touchend',(e)=>{ if(gameState==='playing')dropFruit(); });
+
+function update(dt){
+  if(gameState!=='playing')return;
+  if(dropCooldown>0){ dropCooldown-=dt; if(dropCooldown<=0)canDrop=true; }
+  // 물리
+  for(const f of fruits){
+    f.vy+=GRAVITY*dt;
+    f.x+=f.vx*dt; f.y+=f.vy*dt;
+    f.vx*=FRICTION;
+    // 벽
+    if(f.x-f.r<0){ f.x=f.r; f.vx*=-DAMP; }
+    if(f.x+f.r>W){ f.x=W-f.r; f.vx*=-DAMP; }
+    // 바닥
+    if(f.y+f.r>H){ f.y=H-f.r; f.vy*=-DAMP; f.vx*=0.9; }
+  }
+  // 충돌 (여러 번 반복해서 안정화)
+  for(let iter=0;iter<4;iter++){
+    for(let i=0;i<fruits.length;i++){
+      for(let j=i+1;j<fruits.length;j++){
+        const a=fruits[i],b=fruits[j];
+        const dx=b.x-a.x, dy=b.y-a.y;
+        const dist=Math.hypot(dx,dy);
+        const minDist=a.r+b.r;
+        if(dist<minDist && dist>0){
+          // 같은 레벨이면 합치기
+          if(a.level===b.level && !a.merged && !b.merged && a.level<FRUITS.length-1){
+            a.merged=true; b.merged=true;
+            const nl=a.level+1;
+            const nf=FRUITS[nl];
+            const nx=(a.x+b.x)/2, ny=(a.y+b.y)/2;
+            setTimeout(()=>{},0);
+            fruits.push({x:nx,y:ny,vx:0,vy:0,level:nl,r:nf.r,merged:false});
+            score+=nf.score;
+            playMerge(nl);
+            updateScore();
+            continue;
+          }
+          // 밀어내기
+          const overlap=minDist-dist;
+          const nx=dx/dist, ny=dy/dist;
+          a.x-=nx*overlap*0.5; a.y-=ny*overlap*0.5;
+          b.x+=nx*overlap*0.5; b.y+=ny*overlap*0.5;
+          const relVx=b.vx-a.vx, relVy=b.vy-a.vy;
+          const dot=relVx*nx+relVy*ny;
+          if(dot<0){
+            const imp=dot*DAMP;
+            a.vx+=nx*imp; a.vy+=ny*imp;
+            b.vx-=nx*imp; b.vy-=ny*imp;
+          }
+        }
+      }
+    }
+  }
+  // 합쳐진 과일 제거
+  fruits=fruits.filter(f=>!f.merged);
+  // 오버플로우 체크 (위로 넘침)
+  let overflow=false;
+  for(const f of fruits){
+    if(f.y-f.r<0 && Math.abs(f.vy)<20 && f.settledTime>0.5){ overflow=true; break; }
+    if(f.y+f.r<60 && f.y>0){ /* 상단 근처 */ }
+  }
+  // 정착 시간 추적
+  for(const f of fruits){
+    if(Math.abs(f.vy)<30 && Math.abs(f.vx)<30) f.settledTime=(f.settledTime||0)+dt;
+    else f.settledTime=0;
+  }
+  // 라인 넘으면 게임오버 (상단 라인 = r 기준)
+  let danger=false;
+  for(const f of fruits){
+    if(f.y-f.r<40 && (f.settledTime||0)>1.2){ danger=true; break; }
+  }
+  if(danger){ overflowTimer+=dt; if(overflowTimer>0.5)gameOver(); }
+  else overflowTimer=0;
+}
+function gameOver(){
+  gameState='gameover'; playGameOver();
+  let maxLevel=0;
+  for(const f of fruits)if(f.level>maxLevel)maxLevel=f.level;
+  document.getElementById('final-score').textContent=score.toLocaleString();
+  document.getElementById('final-fruit').textContent=FRUITS[maxLevel].emoji;
+  setTimeout(()=>document.getElementById('gameover-screen').classList.remove('hidden'),500);
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 위험선
+  ctx.strokeStyle='rgba(224,122,60,0.3)'; ctx.lineWidth=2; ctx.setLineDash([6,6]);
+  ctx.beginPath(); ctx.moveTo(0,40); ctx.lineTo(W,40); ctx.stroke(); ctx.setLineDash([]);
+  if(gameState==='playing'||gameState==='gameover'){
+    // 과일들
+    for(const f of fruits){
+      ctx.font=(f.r*2*0.95)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(FRUITS[f.level].emoji,f.x,f.y);
+    }
+    // 드롭 미리보기
+    if(gameState==='playing'&&canDrop){
+      const f=FRUITS[currentFruitLevel];
+      ctx.globalAlpha=0.5;
+      ctx.font=(f.r*2*0.95)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(f.emoji,dropX,f.r+10);
+      ctx.globalAlpha=1;
+      // 가이드라인
+      ctx.strokeStyle='rgba(224,122,60,0.2)'; ctx.lineWidth=1; ctx.setLineDash([3,5]);
+      ctx.beginPath(); ctx.moveTo(dropX,f.r+10); ctx.lineTo(dropX,H); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+}
+let lastTime=0;
+function loop(now){
+  if(!lastTime)lastTime=now;
+  const dt=Math.min(0.033,(now-lastTime)/1000); lastTime=now;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+resize(); requestAnimationFrame(loop);
+document.getElementById('best').textContent=best;
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>반응속도 ⚡</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#1a2030; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#243150 0%,#1a2030 100%); display:flex; flex-direction:column; }
+  .header { padding:14px 16px 6px; text-align:center; }
+  .title { font-size:24px; font-weight:900; color:#44ddff; }
+  .best-tag { font-size:13px; color:#88bbdd; margin-top:2px; }
+  /* 모드 선택 */
+  .modes { padding:8px 16px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .mode-btn { background:rgba(255,255,255,0.08); border:2px solid #44ddff; border-radius:14px; padding:7px 14px; font-family:inherit; font-size:12px; font-weight:700; color:white; cursor:pointer; }
+  .mode-btn.active { background:#44ddff; color:#13283a; }
+  /* 게임 영역 */
+  .game-area { flex:1; position:relative; margin:10px 16px 16px; border-radius:20px; overflow:hidden; background:rgba(0,0,0,0.2); cursor:pointer; }
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; transition:background 0.1s; }
+  .screen.hidden { display:none; }
+  .screen-emoji { font-size:64px; margin-bottom:12px; }
+  .screen-title { font-size:26px; font-weight:900; color:white; margin-bottom:8px; }
+  .screen-sub { font-size:15px; color:rgba(255,255,255,0.8); line-height:1.5; }
+  .screen-big { font-size:56px; font-weight:900; color:#ffe066; }
+  #wait-screen { background:#c2185b; }
+  #go-screen { background:#4ade80; }
+  #result-screen { background:#243150; }
+  .target-dot { position:absolute; width:60px; height:60px; border-radius:50%; background:#4ade80; display:flex; align-items:center; justify-content:center; font-size:30px; box-shadow:0 0 20px rgba(74,222,128,0.6); }
+  .btn { background:#44ddff; color:#13283a; border:none; padding:13px 32px; border-radius:24px; font-family:inherit; font-size:16px; font-weight:800; cursor:pointer; margin:8px 4px 0; box-shadow:0 4px 0 #2a9dc0; }
+  .btn:active { transform:translateY(2px); box-shadow:0 2px 0 #2a9dc0; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(255,255,255,0.1); border:2px solid #44ddff; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; color:white; }
+  .stat-grid { display:flex; gap:16px; margin:14px 0; }
+  .stat-item { text-align:center; }
+  .stat-item .v { font-size:24px; font-weight:900; color:#44ddff; }
+  .stat-item .l { font-size:11px; color:rgba(255,255,255,0.6); }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#0d1620 !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(86,204,245,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(68,221,255,0.15), transparent 45%),
+      linear-gradient(180deg, #0d1620 0%, #0d1620 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #56ccf5, #44ddff) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(86,204,245,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="title">⚡ 반응속도</div>
+    <div class="best-tag" id="best-tag">최고 기록: -</div>
+  </div>
+  <div class="modes">
+    <button class="mode-btn active" data-mode="reaction" onclick="setMode('reaction')">⚡ 반응</button>
+    <button class="mode-btn" data-mode="aim" onclick="setMode('aim')">🎯 조준</button>
+    <button class="mode-btn" data-mode="count" onclick="setMode('count')">🔢 연타</button>
+  </div>
+  <div class="game-area" id="game-area">
+    <!-- 시작 화면 -->
+    <div class="screen" id="idle-screen">
+      <div class="screen-emoji" id="idle-emoji">⚡</div>
+      <div class="screen-title" id="idle-title">반응속도 테스트</div>
+      <div class="screen-sub" id="idle-sub">초록색으로 바뀌면<br>최대한 빨리 탭하세요!</div>
+      <button class="btn" onclick="startTest()">▶ 시작</button>
+    </div>
+    <!-- 대기 (빨강) -->
+    <div class="screen hidden" id="wait-screen">
+      <div class="screen-emoji">🔴</div>
+      <div class="screen-title">기다리세요...</div>
+      <div class="screen-sub">초록색이 되면 탭!</div>
+    </div>
+    <!-- GO (초록) -->
+    <div class="screen hidden" id="go-screen">
+      <div class="screen-emoji">🟢</div>
+      <div class="screen-title">지금!</div>
+    </div>
+    <!-- 너무 빨리 -->
+    <div class="screen hidden" id="early-screen" style="background:#e0a040;">
+      <div class="screen-emoji">😅</div>
+      <div class="screen-title">너무 빨라요!</div>
+      <div class="screen-sub">초록색이 될 때까지 기다리세요</div>
+      <button class="btn" onclick="startTest()">🔄 다시</button>
+    </div>
+    <!-- 결과 -->
+    <div class="screen hidden" id="result-screen">
+      <div class="screen-emoji" id="result-emoji">⚡</div>
+      <div class="screen-big" id="result-big">0ms</div>
+      <div class="screen-sub" id="result-sub"></div>
+      <button class="btn" onclick="startTest()">🔄 다시</button>
+    </div>
+  </div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+</div>
+<script>
+'use strict';
+let mode='reaction';
+let state='idle';
+let waitTimeout=null;
+let startTime=0;
+let soundEnabled=true;
+let bests={};
+// aim 모드 상태
+let aimTargets=0, aimStart=0;
+// count 모드 상태
+let countTaps=0, countStart=0, countTimer=null;
+try{ bests=JSON.parse(localStorage.getItem('reaction_bests')||'{}'); if(localStorage.getItem('reaction_sound')==='off')soundEnabled=false; }catch(e){bests={};}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playGo(){ tone(800,0.1,'square',0.1); }
+function playTap(){ tone(600,0.05,'triangle',0.08); }
+function playGood(){ tone(700,0.1,'triangle',0.1); setTimeout(()=>tone(1000,0.1,'triangle',0.08),60); }
+function playBad(){ tone(200,0.15,'sawtooth',0.08); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('reaction_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+const MODE_INFO={
+  reaction:{emoji:'⚡',title:'반응속도 테스트',sub:'초록색으로 바뀌면<br>최대한 빨리 탭하세요!',unit:'ms',lower:true},
+  aim:{emoji:'🎯',title:'조준 테스트',sub:'나타나는 점 10개를<br>최대한 빨리 터치!',unit:'초',lower:true},
+  count:{emoji:'🔢',title:'연타 테스트',sub:'5초 동안<br>최대한 많이 탭!',unit:'회',lower:false},
+};
+
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  resetToIdle();
+}
+window.setMode=setMode;
+
+function resetToIdle(){
+  state='idle';
+  clearAll();
+  showScreen('idle-screen');
+  const info=MODE_INFO[mode];
+  document.getElementById('idle-emoji').textContent=info.emoji;
+  document.getElementById('idle-title').textContent=info.title;
+  document.getElementById('idle-sub').innerHTML=info.sub;
+  updateBestTag();
+}
+function updateBestTag(){
+  const info=MODE_INFO[mode];
+  const b=bests[mode];
+  if(b===undefined){ document.getElementById('best-tag').textContent='최고 기록: -'; return; }
+  document.getElementById('best-tag').textContent='최고 기록: '+b+(info.unit==='ms'?'ms':info.unit==='초'?'초':'회');
+}
+function clearAll(){
+  if(waitTimeout){clearTimeout(waitTimeout);waitTimeout=null;}
+  if(countTimer){clearInterval(countTimer);countTimer=null;}
+  document.querySelectorAll('.target-dot').forEach(d=>d.remove());
+}
+function showScreen(id){
+  ['idle-screen','wait-screen','go-screen','early-screen','result-screen'].forEach(s=>{
+    document.getElementById(s).classList.toggle('hidden',s!==id);
+  });
+}
+
+function startTest(){
+  initAudio();
+  clearAll();
+  if(mode==='reaction') startReaction();
+  else if(mode==='aim') startAim();
+  else if(mode==='count') startCount();
+}
+window.startTest=startTest;
+
+// === 반응 모드 ===
+function startReaction(){
+  state='wait'; showScreen('wait-screen');
+  const delay=1000+Math.random()*3000;
+  waitTimeout=setTimeout(()=>{
+    state='go'; showScreen('go-screen'); startTime=performance.now(); playGo();
+  },delay);
+}
+
+// === 조준 모드 ===
+function startAim(){
+  state='aim'; aimTargets=0; aimStart=performance.now();
+  showScreen('go-screen');
+  document.getElementById('go-screen').classList.add('hidden');
+  spawnAimTarget();
+}
+function spawnAimTarget(){
+  const area=document.getElementById('game-area');
+  const dot=document.createElement('div');
+  dot.className='target-dot';
+  const m=40;
+  const x=m+Math.random()*(area.offsetWidth-60-m*2);
+  const y=m+Math.random()*(area.offsetHeight-60-m*2);
+  dot.style.left=x+'px'; dot.style.top=y+'px';
+  dot.textContent='🎯';
+  dot.addEventListener('mousedown',hitAim);
+  dot.addEventListener('touchstart',(e)=>{e.preventDefault();hitAim(e);},{passive:false});
+  area.appendChild(dot);
+}
+function hitAim(e){
+  if(e)e.stopPropagation();
+  if(state!=='aim')return;
+  playTap();
+  document.querySelectorAll('.target-dot').forEach(d=>d.remove());
+  aimTargets++;
+  if(aimTargets>=10){
+    const elapsed=((performance.now()-aimStart)/1000).toFixed(2);
+    finishTest(parseFloat(elapsed));
+  } else {
+    spawnAimTarget();
+  }
+}
+
+// === 연타 모드 ===
+function startCount(){
+  state='count'; countTaps=0; countStart=performance.now();
+  showScreen('go-screen');
+  document.getElementById('go-screen').querySelector('.screen-emoji').textContent='🔢';
+  document.getElementById('go-screen').querySelector('.screen-title').textContent='탭! 0';
+  let timeLeft=5;
+  countTimer=setInterval(()=>{
+    timeLeft-=0.1;
+    if(timeLeft<=0){
+      clearInterval(countTimer); countTimer=null;
+      finishTest(countTaps);
+    }
+  },100);
+}
+
+// 게임 영역 클릭 처리
+document.getElementById('game-area').addEventListener('mousedown',handleTap);
+document.getElementById('game-area').addEventListener('touchstart',(e)=>{
+  if(e.target.closest('.btn'))return;
+  e.preventDefault(); handleTap(e);
+},{passive:false});
+function handleTap(e){
+  if(e.target.closest('.btn'))return;
+  if(e.target.closest('.target-dot'))return;
+  initAudio();
+  if(mode==='reaction'){
+    if(state==='wait'){
+      // 너무 빨리
+      clearTimeout(waitTimeout); state='early'; showScreen('early-screen'); playBad();
+    } else if(state==='go'){
+      const rt=Math.round(performance.now()-startTime);
+      finishTest(rt);
+    }
+  } else if(mode==='count'){
+    if(state==='count'){
+      countTaps++; playTap();
+      document.getElementById('go-screen').querySelector('.screen-title').textContent='탭! '+countTaps;
+    }
+  }
+}
+
+function finishTest(value){
+  state='result'; clearAll();
+  const info=MODE_INFO[mode];
+  showScreen('result-screen');
+  let display, sub, emoji;
+  if(mode==='reaction'){
+    display=value+'ms';
+    if(value<200){emoji='🏆';sub='엄청 빨라요! 프로급!';}
+    else if(value<300){emoji='⚡';sub='훌륭한 반응속도!';}
+    else if(value<400){emoji='👍';sub='괜찮은 편이에요';}
+    else {emoji='🐢';sub='조금 더 집중해봐요';}
+  } else if(mode==='aim'){
+    display=value+'초';
+    if(value<6){emoji='🏆';sub='명사수!';}
+    else if(value<9){emoji='🎯';sub='좋은 조준력!';}
+    else {emoji='👍';sub='연습하면 더 빨라져요';}
+  } else {
+    display=value+'회';
+    if(value>40){emoji='🏆';sub='손가락이 안 보여요!';}
+    else if(value>30){emoji='🔥';sub='빠른 연타!';}
+    else {emoji='👍';sub='좋아요!';}
+  }
+  document.getElementById('result-emoji').textContent=emoji;
+  document.getElementById('result-big').textContent=display;
+  // 신기록 체크
+  const isBest = bests[mode]===undefined || (info.lower ? value<bests[mode] : value>bests[mode]);
+  if(isBest){ bests[mode]=value; try{localStorage.setItem('reaction_bests',JSON.stringify(bests));}catch(e){} sub='🎉 신기록! '+sub; playGood(); }
+  else playTap();
+  document.getElementById('result-sub').innerHTML=sub;
+  updateBestTag();
+  // go-screen 복구
+  document.getElementById('go-screen').querySelector('.screen-emoji').textContent='🟢';
+  document.getElementById('go-screen').querySelector('.screen-title').textContent='지금!';
+}
+
+resetToIdle();
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>미로 탈출 🌀</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#2a2a4e; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#34345e 0%,#2a2a4e 100%); display:flex; flex-direction:column; }
+  .header { padding:14px 16px 8px; display:flex; justify-content:space-between; align-items:center; }
+  .title { font-size:24px; font-weight:900; color:#a78bfa; }
+  .scores { display:flex; gap:8px; }
+  .score-box { background:rgba(255,255,255,0.1); border-radius:12px; padding:5px 12px; text-align:center; border:2px solid #a78bfa; }
+  .score-box .label { font-size:9px; font-weight:700; color:#c4b0ff; letter-spacing:1px; }
+  .score-box .value { font-size:17px; font-weight:900; color:white; }
+  .game-area { flex:1; display:flex; align-items:center; justify-content:center; padding:8px; }
+  canvas { background:rgba(0,0,0,0.2); border-radius:16px; box-shadow:0 8px 24px rgba(0,0,0,0.2); touch-action:none; }
+  .controls { display:none; padding:0 16px 16px; }
+  .controls.active { display:block; }
+  .dpad { display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px); gap:6px; justify-content:center; }
+  .dpad-btn { background:rgba(255,255,255,0.1); border:2.5px solid #a78bfa; border-radius:14px; font-size:22px; color:#a78bfa; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .dpad-btn:active { background:#a78bfa; color:white; }
+  .dpad-btn.empty { visibility:hidden; }
+  .overlay { position:absolute; inset:0; background:rgba(42,42,78,0.93); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:white; padding:24px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:60px; margin-bottom:8px; }
+  .o-title { font-size:30px; font-weight:900; margin-bottom:6px; }
+  .o-sub { font-size:14px; opacity:0.9; margin-bottom:18px; line-height:1.5; }
+  .o-score { font-size:42px; font-weight:900; color:#ffe066; margin:6px 0; }
+  .btn { background:#a78bfa; color:#2a1a4e; border:none; padding:14px 36px; border-radius:28px; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer; margin:6px; box-shadow:0 5px 0 #7c5cd0; transition:transform 0.1s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #7c5cd0; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(255,255,255,0.1); border:2px solid #a78bfa; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; }
+  .level-toast { position:absolute; top:35%; left:50%; transform:translate(-50%,-50%); background:linear-gradient(135deg,#a78bfa,#7c5cd0); color:white; padding:14px 28px; border-radius:18px; font-size:24px; font-weight:900; z-index:40; pointer-events:none; animation:lt 1.5s ease-out forwards; }
+  @keyframes lt { 0%{opacity:0;transform:translate(-50%,-50%) scale(0.5);}20%{opacity:1;transform:translate(-50%,-50%) scale(1.1);}80%{opacity:1;}100%{opacity:0;} }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#140d1a !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(196,163,255,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(168,85,247,0.15), transparent 45%),
+      linear-gradient(180deg, #140d1a 0%, #140d1a 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #c4a3ff, #a855f7) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(196,163,255,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="title">🌀 미로 탈출</div>
+    <div class="scores">
+      <div class="score-box"><div class="label">레벨</div><div class="value" id="level">1</div></div>
+      <div class="score-box"><div class="label">최고</div><div class="value" id="best">1</div></div>
+    </div>
+  </div>
+  <div class="game-area"><canvas id="canvas"></canvas></div>
+  <div class="controls" id="controls">
+    <div class="dpad">
+      <div class="dpad-btn empty"></div>
+      <div class="dpad-btn" id="btn-up">▲</div>
+      <div class="dpad-btn empty"></div>
+      <div class="dpad-btn" id="btn-left">◀</div>
+      <div class="dpad-btn empty"></div>
+      <div class="dpad-btn" id="btn-right">▶</div>
+      <div class="dpad-btn empty"></div>
+      <div class="dpad-btn" id="btn-down">▼</div>
+      <div class="dpad-btn empty"></div>
+    </div>
+  </div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🌀</div>
+    <div class="o-title">미로 탈출</div>
+    <div class="o-sub">🐭 를 움직여 🧀 까지!<br>레벨이 오를수록 미로가 커져요<br><br>방향키 / 스와이프 / 버튼</div>
+    <button class="btn" onclick="startGame()">▶ 시작</button>
+  </div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let maze=[], cols=0, rows=0, cellSize=0;
+let playerPos={x:0,y:0}, goalPos={x:0,y:0};
+let level=1, best=1, gameState='menu', moves=0;
+let soundEnabled=true;
+const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+try{ best=parseInt(localStorage.getItem('maze_best')||'1')||1; if(localStorage.getItem('maze_sound')==='off')soundEnabled=false; }catch(e){best=1;}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playMove(){ tone(400,0.04,'sine',0.04); }
+function playWin(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'triangle',0.12),i*80)); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('maze_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+// 미로 생성 (재귀적 백트래킹)
+function generateMaze(c,r){
+  cols=c; rows=r;
+  // 각 셀: 벽 정보 {top,right,bottom,left}
+  maze=[];
+  for(let y=0;y<rows;y++){ const row=[]; for(let x=0;x<cols;x++){ row.push({top:true,right:true,bottom:true,left:true,visited:false}); } maze.push(row); }
+  // DFS
+  const stack=[];
+  let cx=0,cy=0;
+  maze[cy][cx].visited=true;
+  stack.push({x:cx,y:cy});
+  while(stack.length>0){
+    const cur=stack[stack.length-1];
+    const neighbors=[];
+    const {x,y}=cur;
+    if(y>0&&!maze[y-1][x].visited)neighbors.push({x,y:y-1,dir:'top'});
+    if(x<cols-1&&!maze[y][x+1].visited)neighbors.push({x:x+1,y,dir:'right'});
+    if(y<rows-1&&!maze[y+1][x].visited)neighbors.push({x,y:y+1,dir:'bottom'});
+    if(x>0&&!maze[y][x-1].visited)neighbors.push({x:x-1,y,dir:'left'});
+    if(neighbors.length>0){
+      const next=neighbors[Math.floor(Math.random()*neighbors.length)];
+      // 벽 허물기
+      if(next.dir==='top'){ maze[y][x].top=false; maze[next.y][next.x].bottom=false; }
+      else if(next.dir==='right'){ maze[y][x].right=false; maze[next.y][next.x].left=false; }
+      else if(next.dir==='bottom'){ maze[y][x].bottom=false; maze[next.y][next.x].top=false; }
+      else if(next.dir==='left'){ maze[y][x].left=false; maze[next.y][next.x].right=false; }
+      maze[next.y][next.x].visited=true;
+      stack.push({x:next.x,y:next.y});
+    } else {
+      stack.pop();
+    }
+  }
+  playerPos={x:0,y:0};
+  goalPos={x:cols-1,y:rows-1};
+}
+
+function resize(){
+  const area=canvas.parentElement.getBoundingClientRect();
+  const maxSize=Math.min(area.width-16,area.height-16,420);
+  cellSize=Math.floor(maxSize/Math.max(cols,rows));
+  canvas.width=cellSize*cols; canvas.height=cellSize*rows;
+}
+window.addEventListener('resize',()=>{resize();draw();});
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  if(isTouch)document.getElementById('controls').classList.add('active');
+  level=1;
+  loadLevel();
+}
+window.startGame=startGame;
+
+function loadLevel(){
+  const size=Math.min(6+level,16);
+  generateMaze(size,size);
+  resize();
+  moves=0;
+  gameState='playing';
+  document.getElementById('level').textContent=level;
+  document.getElementById('best').textContent=best;
+  showLevelToast('LEVEL '+level);
+  draw();
+}
+function showLevelToast(text){
+  const t=document.createElement('div'); t.className='level-toast'; t.textContent=text;
+  document.getElementById('app').appendChild(t); setTimeout(()=>t.remove(),1500);
+}
+
+function tryMove(dx,dy){
+  if(gameState!=='playing')return;
+  const {x,y}=playerPos;
+  const cell=maze[y][x];
+  if(dx===1&&!cell.right){ playerPos.x++; }
+  else if(dx===-1&&!cell.left){ playerPos.x--; }
+  else if(dy===1&&!cell.bottom){ playerPos.y++; }
+  else if(dy===-1&&!cell.top){ playerPos.y--; }
+  else return; // 벽
+  moves++; playMove();
+  if(playerPos.x===goalPos.x&&playerPos.y===goalPos.y){
+    win();
+  }
+  draw();
+}
+function win(){
+  playWin();
+  if(level>best){ best=level; try{localStorage.setItem('maze_best',best);}catch(e){} }
+  level++;
+  gameState='transition';
+  showLevelToast('🧀 클리어!');
+  setTimeout(()=>loadLevel(),900);
+}
+
+window.addEventListener('keydown',(e)=>{
+  const k=e.key.toLowerCase();
+  if(k==='arrowup'||k==='w'){tryMove(0,-1);e.preventDefault();}
+  else if(k==='arrowdown'||k==='s'){tryMove(0,1);e.preventDefault();}
+  else if(k==='arrowleft'||k==='a'){tryMove(-1,0);e.preventDefault();}
+  else if(k==='arrowright'||k==='d'){tryMove(1,0);e.preventDefault();}
+});
+function bindBtn(id,dx,dy){ const b=document.getElementById(id); const h=(e)=>{e.preventDefault();tryMove(dx,dy);}; b.addEventListener('touchstart',h,{passive:false}); b.addEventListener('mousedown',h); }
+bindBtn('btn-up',0,-1); bindBtn('btn-down',0,1); bindBtn('btn-left',-1,0); bindBtn('btn-right',1,0);
+let tsx=0,tsy=0;
+canvas.addEventListener('touchstart',(e)=>{const t=e.touches[0];tsx=t.clientX;tsy=t.clientY;},{passive:true});
+canvas.addEventListener('touchend',(e)=>{const t=e.changedTouches[0];const dx=t.clientX-tsx,dy=t.clientY-tsy;if(Math.abs(dx)<20&&Math.abs(dy)<20)return;if(Math.abs(dx)>Math.abs(dy))tryMove(dx>0?1:-1,0);else tryMove(0,dy>0?1:-1);});
+
+function draw(){
+  if(!canvas.width)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // 방문 경로 표시 (옅게)
+  // 벽 그리기
+  ctx.strokeStyle='#a78bfa'; ctx.lineWidth=Math.max(2,cellSize*0.12); ctx.lineCap='round';
+  for(let y=0;y<rows;y++){
+    for(let x=0;x<cols;x++){
+      const cell=maze[y][x];
+      const px=x*cellSize, py=y*cellSize;
+      ctx.beginPath();
+      if(cell.top){ ctx.moveTo(px,py); ctx.lineTo(px+cellSize,py); }
+      if(cell.right){ ctx.moveTo(px+cellSize,py); ctx.lineTo(px+cellSize,py+cellSize); }
+      if(cell.bottom){ ctx.moveTo(px,py+cellSize); ctx.lineTo(px+cellSize,py+cellSize); }
+      if(cell.left){ ctx.moveTo(px,py); ctx.lineTo(px,py+cellSize); }
+      ctx.stroke();
+    }
+  }
+  // 목표 (치즈)
+  ctx.font=(cellSize*0.7)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('🧀',goalPos.x*cellSize+cellSize/2,goalPos.y*cellSize+cellSize/2);
+  // 플레이어 (쥐)
+  ctx.fillText('🐭',playerPos.x*cellSize+cellSize/2,playerPos.y*cellSize+cellSize/2);
+}
+document.getElementById('best').textContent=best;
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>

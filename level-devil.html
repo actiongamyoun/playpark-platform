@@ -4,9 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>레벨 데빌 😈</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
-  html, body { height:100%; overflow:hidden; font-family: 'Courier New', monospace; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
   body {
     background: #1a1a2e;
     display:flex; align-items:center; justify-content:center;
@@ -98,7 +101,7 @@
   }
   .overlay.hidden { display: none; }
   .title {
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family:'Outfit','Apple SD Gothic Neo',sans-serif;
     font-size: 42px;
     font-weight: 900;
     background: linear-gradient(135deg, #ff5577, #ffbb33);
@@ -121,7 +124,7 @@
     padding: 14px 22px;
     margin: 12px 0 20px;
     min-width: 220px;
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family:'Outfit','Apple SD Gothic Neo',sans-serif;
   }
   .stat-row {
     display: flex; justify-content: space-between;
@@ -136,7 +139,7 @@
     border: none;
     padding: 14px 36px;
     border-radius: 28px;
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family:'Outfit','Apple SD Gothic Neo',sans-serif;
     font-size: 17px;
     font-weight: 800;
     cursor: pointer;
@@ -156,7 +159,7 @@
     line-height: 1.7;
     opacity: 0.8;
     max-width: 320px;
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family:'Outfit','Apple SD Gothic Neo',sans-serif;
   }
   .controls-info b { color: #ffbb33; }
 
@@ -169,7 +172,7 @@
     color: white;
     padding: 14px 28px;
     border-radius: 18px;
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family:'Outfit','Apple SD Gothic Neo',sans-serif;
     font-size: 22px;
     font-weight: 900;
     z-index: 40;
@@ -196,7 +199,7 @@
     padding: 8px 18px;
     border: 2px solid #ff5577;
     border-radius: 12px;
-    font-family: 'Trebuchet MS', sans-serif;
+    font-family:'Outfit','Apple SD Gothic Neo',sans-serif;
     font-size: 14px;
     font-weight: 700;
     z-index: 35;
@@ -236,6 +239,19 @@
     .ctrl-btn { width: 50px; height: 50px; font-size: 20px; }
     .ctrl-btn.jump { width: 62px; height: 62px; font-size: 22px; }
   }
+
+  /* === 모던 폰트 + 버튼 업그레이드 === */
+  .btn {
+    background:linear-gradient(135deg, #ff6b6b, #ffce5c) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(255,107,107,0.4), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .overlay { backdrop-filter:blur(14px) !important; }
 </style>
 </head>
 <body>

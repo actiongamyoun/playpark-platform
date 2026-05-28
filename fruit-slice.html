@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>과일 슬라이스 🔪</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#2a1a3e; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#3a2456 0%,#2a1a3e 100%); }
+  canvas { display:block; width:100%; height:100%; touch-action:none; }
+  .hud { position:absolute; top:0; left:0; right:0; padding:12px 16px; display:flex; justify-content:space-between; z-index:10; pointer-events:none; }
+  .hud-box { background:rgba(0,0,0,0.3); border-radius:10px; padding:6px 14px; color:white; font-weight:800; font-size:15px; border:2px solid rgba(255,255,255,0.2); }
+  .lives { font-size:18px; letter-spacing:2px; }
+  .overlay { position:absolute; inset:0; background:rgba(42,26,62,0.93); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:white; padding:24px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:64px; margin-bottom:8px; }
+  .o-title { font-size:34px; font-weight:900; margin-bottom:6px; }
+  .o-sub { font-size:14px; opacity:0.9; margin-bottom:20px; line-height:1.5; }
+  .o-score { font-size:48px; font-weight:900; color:#ffe066; margin:8px 0; }
+  .btn { background:#ff4ecd; color:white; border:none; padding:14px 36px; border-radius:28px; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer; margin:6px; box-shadow:0 5px 0 #b02a8f; transition:transform 0.1s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #b02a8f; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(0,0,0,0.3); border:2px solid rgba(255,255,255,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; color:white; }
+  .sound-toggle.show { display:flex; } .sound-toggle.hide { display:none; }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#160d1a !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,143,199,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(196,163,255,0.15), transparent 45%),
+      linear-gradient(180deg, #160d1a 0%, #160d1a 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #ff8fc7, #c4a3ff) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(255,143,199,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas"></canvas>
+  <div class="hud">
+    <div class="hud-box">⭐ <span id="score">0</span></div>
+    <div class="hud-box lives" id="lives">❤️❤️❤️</div>
+  </div>
+  <button class="sound-toggle hide" id="sound-toggle" onclick="toggleSound()">🔊</button>
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🍉</div>
+    <div class="o-title">과일 슬라이스</div>
+    <div class="o-sub">날아오는 과일을 베세요!<br>💣 폭탄은 피하고<br>놓친 과일 3개면 끝<br><br>화면을 휙휙 그어보세요</div>
+    <button class="btn" onclick="startGame()">▶ 시작</button>
+  </div>
+  <div class="overlay hidden" id="gameover-screen">
+    <div class="big-emoji" id="go-emoji">💥</div>
+    <div class="o-title">게임 오버!</div>
+    <div class="o-score" id="final-score">0</div>
+    <div class="o-sub">최고 기록: <b id="final-best">0</b><br>벤 과일: <b id="final-cuts">0</b>개</div>
+    <button class="btn" onclick="startGame()">🔄 다시</button>
+  </div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let W=0,H=0,DPR=1;
+const FRUIT_EMOJIS=['🍉','🍊','🍎','🍓','🍇','🍑','🥝','🍍','🥭','🍈'];
+let objects=[], slices=[], particles=[];
+let score=0,best=0,lives=3,gameState='menu',spawnTimer=0,cuts=0,combo=0,comboTimer=0;
+let trail=[];
+let soundEnabled=true;
+try{ best=parseInt(localStorage.getItem('slice_best')||'0')||0; if(localStorage.getItem('slice_sound')==='off')soundEnabled=false; }catch(e){best=0;}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playSlice(){ tone(800,0.06,'triangle',0.08); setTimeout(()=>tone(1200,0.05,'triangle',0.06),30); }
+function playBomb(){ if(!soundEnabled||!audioCtx)return; const bs=audioCtx.sampleRate*0.3,b=audioCtx.createBuffer(1,bs,audioCtx.sampleRate),d=b.getChannelData(0); for(let i=0;i<bs;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/bs*4); const nz=audioCtx.createBufferSource();nz.buffer=b; const fl=audioCtx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=300; const g=audioCtx.createGain();g.gain.value=0.2; nz.connect(fl);fl.connect(g);g.connect(audioCtx.destination);nz.start(); }
+function playMiss(){ tone(200,0.15,'sawtooth',0.08); }
+function playCombo(c){ tone(600+c*80,0.1,'square',0.1); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('slice_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+function resize(){
+  const rect=document.getElementById('app').getBoundingClientRect();
+  W=rect.width;H=rect.height;DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize); resize();
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  document.getElementById('sound-toggle').classList.remove('hide');
+  document.getElementById('sound-toggle').classList.add('show');
+  objects=[];slices=[];particles=[];trail=[];
+  score=0;lives=3;cuts=0;combo=0;comboTimer=0;spawnTimer=0;gameState='playing';
+  updateHUD();
+}
+window.startGame=startGame;
+
+function updateHUD(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('lives').textContent='❤️'.repeat(Math.max(0,lives))+'🖤'.repeat(Math.max(0,3-lives));
+}
+
+function spawnObject(){
+  const isBomb=Math.random()<0.12+Math.min(0.1,score/2000);
+  const x=W*0.2+Math.random()*W*0.6;
+  const vx=(W/2-x)*0.5/1000*1000*(0.3+Math.random()*0.4)*(Math.random()<0.5?1:-1)*0.01;
+  objects.push({
+    x, y:H+40,
+    vx:(Math.random()-0.5)*180,
+    vy:-(620+Math.random()*180),
+    type:isBomb?'bomb':'fruit',
+    emoji:isBomb?'💣':FRUIT_EMOJIS[Math.floor(Math.random()*FRUIT_EMOJIS.length)],
+    r:30, rot:Math.random()*Math.PI*2, vrot:(Math.random()-0.5)*6,
+    sliced:false,
+  });
+}
+
+function update(dt){
+  if(gameState!=='playing')return;
+  spawnTimer-=dt;
+  if(spawnTimer<=0){
+    const count=1+(Math.random()<Math.min(0.5,score/1000)?1:0);
+    for(let i=0;i<count;i++)setTimeout(()=>{ if(gameState==='playing')spawnObject(); },i*150);
+    spawnTimer=Math.max(0.5,1.2-score/2000);
+  }
+  if(comboTimer>0){ comboTimer-=dt; if(comboTimer<=0)combo=0; }
+  // 오브젝트
+  for(let i=objects.length-1;i>=0;i--){
+    const o=objects[i];
+    o.vy+=900*dt;
+    o.x+=o.vx*dt; o.y+=o.vy*dt; o.rot+=o.vrot*dt;
+    if(o.y>H+60){
+      if(!o.sliced && o.type==='fruit'){
+        lives--; playMiss(); updateHUD();
+        if(lives<=0){ gameOver(false); return; }
+      }
+      objects.splice(i,1);
+    }
+  }
+  // 파티클
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.vy+=600*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
+    if(p.life<=0)particles.splice(i,1);
+  }
+  // 트레일 페이드
+  for(let i=trail.length-1;i>=0;i--){ trail[i].life-=dt*3; if(trail[i].life<=0)trail.splice(i,1); }
+}
+
+function checkSlice(x1,y1,x2,y2){
+  for(let i=objects.length-1;i>=0;i--){
+    const o=objects[i];
+    if(o.sliced)continue;
+    // 선분-원 거리
+    if(distToSegment(o.x,o.y,x1,y1,x2,y2)<o.r){
+      o.sliced=true;
+      if(o.type==='bomb'){
+        playBomb(); spawnExplosion(o.x,o.y,'💥');
+        objects.splice(i,1);
+        gameOver(true); return;
+      } else {
+        cuts++; combo++; comboTimer=0.8;
+        const pts=10*(combo>=3?combo-1:1);
+        score+=pts;
+        playSlice();
+        if(combo>=3){ playCombo(combo); }
+        spawnSliceEffect(o);
+        objects.splice(i,1);
+        updateHUD();
+      }
+    }
+  }
+}
+function spawnSliceEffect(o){
+  // 반쪽 두 개 날림
+  for(let s=0;s<2;s++){
+    particles.push({ x:o.x,y:o.y,vx:o.vx+(s?80:-80),vy:o.vy*0.5-100,life:1,maxLife:1,emoji:o.emoji,rot:o.rot,vrot:(s?4:-4),half:true });
+  }
+  // 즙 방울
+  for(let i=0;i<8;i++){
+    const a=Math.random()*Math.PI*2,sp=80+Math.random()*120;
+    particles.push({ x:o.x,y:o.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.5,maxLife:0.5,color:'#ff6699',r:3+Math.random()*3 });
+  }
+}
+function spawnExplosion(x,y){
+  for(let i=0;i<16;i++){
+    const a=Math.random()*Math.PI*2,sp=100+Math.random()*200;
+    particles.push({ x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.6,maxLife:0.6,color:'#ff8833',r:4+Math.random()*4 });
+  }
+}
+function distToSegment(px,py,x1,y1,x2,y2){
+  const dx=x2-x1,dy=y2-y1; const l2=dx*dx+dy*dy;
+  if(l2===0)return Math.hypot(px-x1,py-y1);
+  let t=((px-x1)*dx+(py-y1)*dy)/l2; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(px-(x1+t*dx),py-(y1+t*dy));
+}
+
+function gameOver(byBomb){
+  gameState='gameover';
+  if(score>best){ best=score; try{localStorage.setItem('slice_best',best);}catch(e){} }
+  document.getElementById('go-emoji').textContent=byBomb?'💣':'💔';
+  document.getElementById('final-score').textContent=score;
+  document.getElementById('final-best').textContent=best;
+  document.getElementById('final-cuts').textContent=cuts;
+  setTimeout(()=>document.getElementById('gameover-screen').classList.remove('hidden'),500);
+}
+
+// 입력 (마우스/터치 궤적)
+let lastX=null,lastY=null,slicing=false;
+function pointerPos(clientX,clientY){ const r=canvas.getBoundingClientRect(); return {x:clientX-r.left,y:clientY-r.top}; }
+function startSlice(x,y){ slicing=true; lastX=x; lastY=y; }
+function moveSlice(x,y){
+  if(!slicing||gameState!=='playing'){ lastX=x;lastY=y; return; }
+  if(lastX!==null){ trail.push({x1:lastX,y1:lastY,x2:x,y2:y,life:1}); checkSlice(lastX,lastY,x,y); }
+  lastX=x; lastY=y;
+}
+function endSlice(){ slicing=false; lastX=null; lastY=null; }
+canvas.addEventListener('mousedown',(e)=>{ initAudio(); const p=pointerPos(e.clientX,e.clientY); startSlice(p.x,p.y); });
+canvas.addEventListener('mousemove',(e)=>{ const p=pointerPos(e.clientX,e.clientY); moveSlice(p.x,p.y); });
+canvas.addEventListener('mouseup',endSlice);
+canvas.addEventListener('mouseleave',endSlice);
+canvas.addEventListener('touchstart',(e)=>{ e.preventDefault(); initAudio(); const t=e.touches[0]; const p=pointerPos(t.clientX,t.clientY); startSlice(p.x,p.y); },{passive:false});
+canvas.addEventListener('touchmove',(e)=>{ e.preventDefault(); const t=e.touches[0]; const p=pointerPos(t.clientX,t.clientY); moveSlice(p.x,p.y); },{passive:false});
+canvas.addEventListener('touchend',(e)=>{ e.preventDefault(); endSlice(); },{passive:false});
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(gameState==='playing'||gameState==='gameover'){
+    // 오브젝트
+    for(const o of objects){
+      ctx.save(); ctx.translate(o.x,o.y); ctx.rotate(o.rot);
+      ctx.font=(o.r*2)+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(o.emoji,0,0); ctx.restore();
+    }
+    // 파티클
+    for(const p of particles){
+      if(p.half){
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot+(p.vrot||0));
+        ctx.globalAlpha=Math.max(0,p.life/p.maxLife);
+        ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(p.emoji,0,0); ctx.restore(); ctx.globalAlpha=1;
+      } else {
+        ctx.globalAlpha=Math.max(0,p.life/p.maxLife);
+        ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); ctx.globalAlpha=1;
+      }
+    }
+    // 콤보 표시
+    if(combo>=3){
+      ctx.fillStyle='rgba(255,224,102,0.9)'; ctx.font='900 28px Trebuchet MS'; ctx.textAlign='center';
+      ctx.fillText(combo+' COMBO!',W/2,H*0.3);
+    }
+  }
+  // 칼 궤적
+  ctx.strokeStyle='rgba(255,255,255,0.8)'; ctx.lineCap='round';
+  for(const t of trail){
+    ctx.globalAlpha=Math.max(0,t.life)*0.8;
+    ctx.lineWidth=t.life*8;
+    ctx.beginPath(); ctx.moveTo(t.x1,t.y1); ctx.lineTo(t.x2,t.y2); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+}
+let lastTime=0;
+function loop(now){
+  if(!lastTime)lastTime=now;
+  const dt=Math.min(0.05,(now-lastTime)/1000); lastTime=now;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>

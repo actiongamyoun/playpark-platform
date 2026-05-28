@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>컬러 스위치 🎨</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#1a1a2e; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#23234a 0%,#1a1a2e 100%); }
+  canvas { display:block; width:100%; height:100%; touch-action:none; }
+  .hud { position:absolute; top:0; left:0; right:0; padding:14px 16px; display:flex; justify-content:space-between; z-index:10; pointer-events:none; }
+  .hud-box { background:rgba(0,0,0,0.3); border-radius:10px; padding:6px 14px; color:white; font-weight:800; font-size:15px; border:2px solid rgba(255,255,255,0.2); }
+  .overlay { position:absolute; inset:0; background:rgba(26,26,46,0.93); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:white; padding:24px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:60px; margin-bottom:8px; }
+  .o-title { font-size:32px; font-weight:900; margin-bottom:6px; }
+  .o-sub { font-size:14px; opacity:0.9; margin-bottom:20px; line-height:1.5; }
+  .o-score { font-size:48px; font-weight:900; color:#ffe066; margin:8px 0; }
+  .btn { background:#4ade80; color:#13322a; border:none; padding:14px 36px; border-radius:28px; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer; margin:6px; box-shadow:0 5px 0 #2a9d5a; transition:transform 0.1s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #2a9d5a; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(0,0,0,0.3); border:2px solid rgba(255,255,255,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; color:white; }
+  .tap-hint { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.5); font-size:13px; z-index:10; pointer-events:none; }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#0d1a18 !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(94,234,212,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(68,221,255,0.15), transparent 45%),
+      linear-gradient(180deg, #0d1a18 0%, #0d1a18 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #5eead4, #44ddff) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(94,234,212,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas"></canvas>
+  <div class="hud">
+    <div class="hud-box">⭐ <span id="score">0</span></div>
+    <div class="hud-box">🏆 <span id="best">0</span></div>
+  </div>
+  <div class="tap-hint" id="tap-hint" style="display:none;">탭해서 회전!</div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🎨</div>
+    <div class="o-title">컬러 스위치</div>
+    <div class="o-sub">탭하면 통이 회전해요!<br>떨어지는 공과 같은 색이<br>아래에 오게 맞추세요<br><br>틀리면 게임 오버!</div>
+    <button class="btn" onclick="startGame()">▶ 시작</button>
+  </div>
+  <div class="overlay hidden" id="gameover-screen">
+    <div class="big-emoji">💥</div>
+    <div class="o-title">게임 오버!</div>
+    <div class="o-score" id="final-score">0</div>
+    <div class="o-sub">최고 기록: <b id="final-best">0</b></div>
+    <button class="btn" onclick="startGame()">🔄 다시</button>
+  </div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let W=0,H=0,DPR=1;
+const COLORS=['#ff5577','#44ddff','#ffe066','#4ade80'];
+const COLOR_NAMES=['빨강','파랑','노랑','초록'];
+let score=0,best=0,gameState='menu';
+let bin; // 회전하는 통 (4구역)
+let ball; // 떨어지는 공
+let particles=[];
+let fallSpeed=180;
+let soundEnabled=true;
+try{ best=parseInt(localStorage.getItem('colorswitch_best')||'0')||0; if(localStorage.getItem('colorswitch_sound')==='off')soundEnabled=false; }catch(e){best=0;}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playRotate(){ tone(400,0.05,'sine',0.05); }
+function playCatch(){ tone(700,0.08,'triangle',0.1); setTimeout(()=>tone(1000,0.08,'triangle',0.08),50); }
+function playWrong(){ [300,200,150].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sawtooth',0.1),i*70)); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('colorswitch_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+function resize(){
+  const rect=document.getElementById('app').getBoundingClientRect();
+  W=rect.width;H=rect.height;DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize); resize();
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  document.getElementById('tap-hint').style.display='block';
+  score=0; fallSpeed=180; particles=[];
+  bin={ angle:0, targetAngle:0 }; // 0,90,180,270 → 어느 색이 아래(6시방향)인지
+  // bin의 4구역: 0=빨강(아래), 1=파랑(왼쪽) ... 회전으로 변경
+  spawnBall();
+  gameState='playing';
+  updateScore();
+}
+window.startGame=startGame;
+
+function spawnBall(){
+  const colorIdx=Math.floor(Math.random()*4);
+  ball={ y:-30, colorIdx, r:18 };
+}
+function updateScore(){
+  document.getElementById('score').textContent=score;
+  if(score>best){ best=score; try{localStorage.setItem('colorswitch_best',best);}catch(e){} }
+  document.getElementById('best').textContent=best;
+}
+
+function rotate(){
+  if(gameState!=='playing')return;
+  bin.targetAngle+=Math.PI/2;
+  playRotate();
+  document.getElementById('tap-hint').style.display='none';
+}
+document.getElementById('app').addEventListener('mousedown',(e)=>{ if(e.target.closest('.btn')||e.target.closest('.sound-toggle'))return; initAudio(); rotate(); });
+document.getElementById('app').addEventListener('touchstart',(e)=>{ if(e.target.closest('.btn')||e.target.closest('.sound-toggle'))return; e.preventDefault(); initAudio(); rotate(); },{passive:false});
+window.addEventListener('keydown',(e)=>{ if(e.key===' '||e.key==='ArrowUp'||e.key==='ArrowRight'){e.preventDefault();rotate();} });
+
+// 통의 현재 아래쪽(6시) 색 인덱스 계산
+function getBottomColor(){
+  // bin.angle이 0이면 기본배치: 아래=0, 왼=1, 위=2, 오=3
+  // 90도(시계) 회전마다 인덱스 시프트
+  const steps=Math.round(bin.angle/(Math.PI/2))%4;
+  return ((0-steps)%4+4)%4;
+}
+
+function update(dt){
+  if(gameState!=='playing')return;
+  // 통 회전 애니메이션
+  bin.angle+=(bin.targetAngle-bin.angle)*Math.min(1,dt*12);
+  // 공 낙하
+  ball.y+=fallSpeed*dt;
+  const binY=H*0.72;
+  if(ball.y>=binY-ball.r){
+    // 판정 (통이 거의 멈췄을 때만)
+    if(Math.abs(bin.targetAngle-bin.angle)<0.2){
+      const bottomColor=getBottomColor();
+      if(bottomColor===ball.colorIdx){
+        score++; playCatch();
+        spawnCatchParticles(W/2,binY,COLORS[ball.colorIdx]);
+        if(score%5===0&&fallSpeed<420)fallSpeed+=20;
+        updateScore();
+        spawnBall();
+      } else {
+        gameOver();
+      }
+    } else {
+      // 아직 회전중이면 살짝 기다림 (공을 멈춤)
+      ball.y=binY-ball.r;
+    }
+  }
+  // 파티클
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i]; p.vy+=500*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+function spawnCatchParticles(x,y,color){
+  for(let i=0;i<12;i++){ const a=Math.random()*Math.PI*2,s=80+Math.random()*120; particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-80,life:0.6,maxLife:0.6,color,r:3+Math.random()*3}); }
+}
+function gameOver(){
+  gameState='gameover'; playWrong();
+  document.getElementById('final-score').textContent=score;
+  document.getElementById('final-best').textContent=best;
+  setTimeout(()=>document.getElementById('gameover-screen').classList.remove('hidden'),400);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  if(gameState==='playing'||gameState==='gameover'){
+    const cx=W/2, binY=H*0.72, binR=Math.min(W*0.32,120);
+    // 통 (4분할 원)
+    ctx.save(); ctx.translate(cx,binY); ctx.rotate(bin.angle);
+    for(let i=0;i<4;i++){
+      // i=0 아래(6시), 1 왼(9시) ... 기준: 아래가 시작
+      ctx.fillStyle=COLORS[i];
+      ctx.beginPath();
+      const startA=Math.PI/4+i*(Math.PI/2); // 45도부터 시작 (구역 중앙이 정방향)
+      ctx.moveTo(0,0);
+      ctx.arc(0,0,binR,startA,startA+Math.PI/2);
+      ctx.closePath(); ctx.fill();
+    }
+    // 가운데 원
+    ctx.fillStyle='#1a1a2e'; ctx.beginPath(); ctx.arc(0,0,binR*0.4,0,7); ctx.fill();
+    ctx.restore();
+    // 아래쪽 표시 화살표 (고정)
+    ctx.fillStyle='white'; ctx.font='20px serif'; ctx.textAlign='center';
+    ctx.fillText('▲',cx,binY+binR+24);
+    // 공
+    if(ball){
+      ctx.fillStyle=COLORS[ball.colorIdx];
+      ctx.shadowColor=COLORS[ball.colorIdx]; ctx.shadowBlur=16;
+      ctx.beginPath(); ctx.arc(cx,ball.y,ball.r,0,7); ctx.fill();
+      ctx.shadowBlur=0;
+      // 하이라이트
+      ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.beginPath(); ctx.arc(cx-ball.r*0.3,ball.y-ball.r*0.3,ball.r*0.3,0,7); ctx.fill();
+    }
+    // 파티클
+    for(const p of particles){ ctx.globalAlpha=Math.max(0,p.life/p.maxLife); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+    ctx.globalAlpha=1;
+  }
+}
+let lastTime=0;
+function loop(now){
+  if(!lastTime)lastTime=now;
+  const dt=Math.min(0.05,(now-lastTime)/1000); lastTime=now;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+document.getElementById('best').textContent=best;
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>

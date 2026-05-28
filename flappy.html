@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>플래피 🐦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#87ceeb; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#87ceeb 0%,#b8e6ff 70%,#ded895 100%); }
+  canvas { display:block; width:100%; height:100%; touch-action:none; }
+  .score-big { position:absolute; top:60px; left:50%; transform:translateX(-50%); font-size:56px; font-weight:900; color:white; text-shadow:3px 3px 0 rgba(0,0,0,0.2); z-index:10; pointer-events:none; }
+  .best-tag { position:absolute; top:14px; left:50%; transform:translateX(-50%); background:rgba(255,255,255,0.7); border-radius:12px; padding:5px 16px; font-size:13px; font-weight:700; color:#5a8a2a; z-index:10; pointer-events:none; }
+  .overlay { position:absolute; inset:0; background:rgba(90,138,42,0.88); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:white; padding:24px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:64px; margin-bottom:8px; }
+  .o-title { font-size:34px; font-weight:900; margin-bottom:6px; }
+  .o-sub { font-size:14px; opacity:0.9; margin-bottom:20px; line-height:1.5; }
+  .o-score { font-size:48px; font-weight:900; color:#ffe066; margin:8px 0; }
+  .btn { background:#ffe066; color:#5a8a2a; border:none; padding:14px 36px; border-radius:28px; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer; margin:6px; box-shadow:0 5px 0 #d4b840; transition:transform 0.1s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #d4b840; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(255,255,255,0.7); border:2px solid #5a8a2a; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#0d1620 !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(86,204,245,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(42,159,214,0.15), transparent 45%),
+      linear-gradient(180deg, #0d1620 0%, #0d1620 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #56ccf5, #2a9fd6) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(86,204,245,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas"></canvas>
+  <div class="best-tag">🏆 최고: <span id="best">0</span></div>
+  <div class="score-big" id="score-big" style="display:none;">0</div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🐦</div>
+    <div class="o-title">플래피</div>
+    <div class="o-sub">탭(클릭)해서 날아올라요!<br>파이프 사이를 통과하세요<br><br>스페이스 / 클릭 / 탭</div>
+    <button class="btn" onclick="startGame()">▶ 시작</button>
+  </div>
+  <div class="overlay hidden" id="gameover-screen">
+    <div class="big-emoji">💥</div>
+    <div class="o-title">게임 오버!</div>
+    <div class="o-score" id="final-score">0</div>
+    <div class="o-sub">최고 기록: <b id="final-best">0</b></div>
+    <button class="btn" onclick="startGame()">🔄 다시</button>
+  </div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let W=0,H=0,DPR=1;
+let bird,pipes,score,best,gameState='menu',pipeTimer;
+let soundEnabled=true;
+try{ best=parseInt(localStorage.getItem('flappy_best')||'0')||0; if(localStorage.getItem('flappy_sound')==='off')soundEnabled=false; }catch(e){best=0;}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playFlap(){ tone(500,0.08,'square',0.07); }
+function playScore(){ tone(700,0.08,'triangle',0.1); setTimeout(()=>tone(1000,0.1,'triangle',0.08),60); }
+function playHit(){ [300,200,150].forEach((f,i)=>setTimeout(()=>tone(f,0.12,'sawtooth',0.1),i*60)); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('flappy_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+function resize(){
+  const rect=document.getElementById('app').getBoundingClientRect();
+  W=rect.width; H=rect.height; DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=W*DPR; canvas.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+resize();
+
+const GRAVITY=1400, FLAP=-420, PIPE_GAP=180, PIPE_W=64, PIPE_INTERVAL=1.5, PIPE_SPEED=160;
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  document.getElementById('score-big').style.display='block';
+  bird={ x:W*0.28, y:H/2, vy:0, r:16, rot:0 };
+  pipes=[]; score=0; pipeTimer=0; gameState='playing';
+  document.getElementById('score-big').textContent='0';
+}
+window.startGame=startGame;
+
+function flap(){
+  if(gameState==='menu')return;
+  if(gameState==='gameover')return;
+  bird.vy=FLAP; playFlap();
+}
+window.addEventListener('keydown',(e)=>{ if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();flap();} });
+document.getElementById('app').addEventListener('mousedown',(e)=>{ if(e.target.closest('.btn')||e.target.closest('.sound-toggle'))return; initAudio(); flap(); });
+document.getElementById('app').addEventListener('touchstart',(e)=>{ if(e.target.closest('.btn')||e.target.closest('.sound-toggle'))return; e.preventDefault(); initAudio(); flap(); },{passive:false});
+
+function spawnPipe(){
+  const minTop=60, maxTop=H-PIPE_GAP-120;
+  const top=minTop+Math.random()*(maxTop-minTop);
+  pipes.push({ x:W, top, passed:false });
+}
+function die(){
+  gameState='gameover'; playHit();
+  if(score>best){ best=score; try{localStorage.setItem('flappy_best',best);}catch(e){} }
+  document.getElementById('final-score').textContent=score;
+  document.getElementById('final-best').textContent=best;
+  document.getElementById('best').textContent=best;
+  setTimeout(()=>{ document.getElementById('gameover-screen').classList.remove('hidden'); document.getElementById('score-big').style.display='none'; },500);
+}
+
+let lastTime=0;
+function loop(now){
+  if(!lastTime)lastTime=now;
+  const dt=Math.min(0.05,(now-lastTime)/1000); lastTime=now;
+  if(gameState==='playing'){
+    bird.vy+=GRAVITY*dt;
+    bird.y+=bird.vy*dt;
+    bird.rot=Math.max(-0.4,Math.min(1.2,bird.vy/500));
+    // 천장/바닥
+    if(bird.y-bird.r<0){ bird.y=bird.r; bird.vy=0; }
+    if(bird.y+bird.r>H-40){ die(); }
+    // 파이프
+    pipeTimer+=dt;
+    if(pipeTimer>=PIPE_INTERVAL){ pipeTimer=0; spawnPipe(); }
+    for(let i=pipes.length-1;i>=0;i--){
+      const p=pipes[i];
+      p.x-=PIPE_SPEED*dt;
+      // 점수
+      if(!p.passed && p.x+PIPE_W<bird.x){ p.passed=true; score++; playScore(); document.getElementById('score-big').textContent=score; }
+      // 충돌
+      if(bird.x+bird.r>p.x && bird.x-bird.r<p.x+PIPE_W){
+        if(bird.y-bird.r<p.top || bird.y+bird.r>p.top+PIPE_GAP){ die(); }
+      }
+      if(p.x+PIPE_W<0) pipes.splice(i,1);
+    }
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 구름 (장식)
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  const cloudT=(performance.now()/8000)%1;
+  for(let i=0;i<3;i++){
+    const cx=((i*0.4+cloudT)%1.2-0.1)*W;
+    const cy=80+i*60;
+    ctx.beginPath(); ctx.arc(cx,cy,18,0,7); ctx.arc(cx+18,cy,24,0,7); ctx.arc(cx+40,cy,18,0,7); ctx.fill();
+  }
+  // 파이프
+  if(pipes){
+    pipes.forEach(p=>{
+      ctx.fillStyle='#5cb85c';
+      ctx.strokeStyle='#3d8b3d'; ctx.lineWidth=3;
+      // 위
+      roundRectPath(p.x,0,PIPE_W,p.top,0); ctx.fill();
+      ctx.fillRect(p.x-4,p.top-24,PIPE_W+8,24);
+      ctx.strokeRect(p.x-4,p.top-24,PIPE_W+8,24);
+      // 아래
+      const by=p.top+PIPE_GAP;
+      ctx.fillRect(p.x,by,PIPE_W,H-by-40);
+      ctx.fillRect(p.x-4,by,PIPE_W+8,24);
+      ctx.strokeRect(p.x-4,by,PIPE_W+8,24);
+    });
+  }
+  // 바닥
+  ctx.fillStyle='#ded895'; ctx.fillRect(0,H-40,W,40);
+  ctx.fillStyle='#c4bd7a'; ctx.fillRect(0,H-40,W,6);
+  // 새
+  if(gameState==='playing'||gameState==='gameover'){
+    ctx.save();
+    ctx.translate(bird.x,bird.y);
+    ctx.rotate(bird.rot);
+    ctx.font='32px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('🐤',0,0);
+    ctx.restore();
+  }
+}
+function roundRectPath(x,y,w,h,r){ ctx.beginPath(); ctx.rect(x,y,w,h); }
+requestAnimationFrame(loop);
+document.getElementById('best').textContent=best;
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>

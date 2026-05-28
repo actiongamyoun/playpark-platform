@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>점프 러너 🏃</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#ffd9a0; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app { width:100%; max-width:480px; height:100vh; height:100dvh; position:relative; overflow:hidden; background:linear-gradient(180deg,#ffe9c4 0%,#ffd9a0 60%,#e8b878 100%); }
+  canvas { display:block; width:100%; height:100%; touch-action:none; }
+  .hud { position:absolute; top:0; left:0; right:0; padding:14px 16px; display:flex; justify-content:space-between; z-index:10; pointer-events:none; }
+  .hud-box { background:rgba(0,0,0,0.2); border-radius:10px; padding:6px 14px; color:white; font-weight:800; font-size:15px; }
+  .overlay { position:absolute; inset:0; background:rgba(180,120,60,0.92); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:white; padding:24px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:60px; margin-bottom:8px; }
+  .o-title { font-size:32px; font-weight:900; margin-bottom:6px; }
+  .o-sub { font-size:14px; opacity:0.9; margin-bottom:20px; line-height:1.5; }
+  .o-score { font-size:48px; font-weight:900; color:#ffe066; margin:8px 0; }
+  .btn { background:#ffe066; color:#b4783c; border:none; padding:14px 36px; border-radius:28px; font-family:inherit; font-size:17px; font-weight:800; cursor:pointer; margin:6px; box-shadow:0 5px 0 #d4b840; transition:transform 0.1s; }
+  .btn:active { transform:translateY(3px); box-shadow:0 2px 0 #d4b840; }
+  .sound-toggle { position:absolute; top:12px; right:12px; width:32px; height:32px; z-index:60; background:rgba(0,0,0,0.2); border:2px solid rgba(255,255,255,0.4); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; color:white; }
+
+  /* === 모던 디자인 업그레이드 === */
+  body { background:#1a160d !important; }
+  #app {
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255,206,92,0.18), transparent 45%),
+      radial-gradient(circle at 82% 100%, rgba(245,158,11,0.15), transparent 45%),
+      linear-gradient(180deg, #1a160d 0%, #1a160d 100%) !important;
+  }
+  .overlay { background:rgba(13,11,26,0.82) !important; backdrop-filter:blur(16px) !important; }
+  .btn {
+    background:linear-gradient(135deg, #ffce5c, #f59e0b) !important;
+    border:none !important; border-radius:18px !important;
+    box-shadow:0 8px 24px rgba(255,206,92,0.18), inset 0 1px 0 rgba(255,255,255,0.3) !important;
+    font-family:'Outfit',sans-serif !important; font-weight:800 !important;
+    transition:transform 0.12s, box-shadow 0.12s !important;
+    color:#fff !important;
+  }
+  .btn:hover { transform:translateY(-2px) !important; }
+  .btn:active { transform:translateY(1px) !important; }
+  .o-title, .title { letter-spacing:-0.3px; }
+  .sound-toggle {
+    background:rgba(255,255,255,0.06) !important;
+    border:1px solid rgba(255,255,255,0.14) !important;
+    backdrop-filter:blur(8px) !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="canvas"></canvas>
+  <div class="hud">
+    <div class="hud-box">🏃 <span id="score">0</span>m</div>
+    <div class="hud-box">🏆 <span id="best">0</span>m</div>
+  </div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🏃</div>
+    <div class="o-title">점프 러너</div>
+    <div class="o-sub">탭(점프)으로 장애물을 피하세요!<br>두 번 탭하면 더블 점프<br>멀리 갈수록 빨라져요<br><br>스페이스 / 클릭 / 탭</div>
+    <button class="btn" onclick="startGame()">▶ 시작</button>
+  </div>
+  <div class="overlay hidden" id="gameover-screen">
+    <div class="big-emoji">💥</div>
+    <div class="o-title">게임 오버!</div>
+    <div class="o-score"><span id="final-score">0</span>m</div>
+    <div class="o-sub">최고 기록: <b id="final-best">0</b>m · 코인 <b id="final-coins">0</b>개</div>
+    <button class="btn" onclick="startGame()">🔄 다시</button>
+  </div>
+</div>
+<script>
+'use strict';
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let W=0,H=0,DPR=1;
+let player,obstacles,coins,clouds,particles;
+let score=0,best=0,coinCount=0,gameState='menu',speed=300,spawnTimer=0,coinTimer=0,distance=0;
+let groundY=0;
+let soundEnabled=true;
+const CHARS=['🐰','🦊','🐱','🐶','🐸'];
+let charEmoji='🐰';
+try{ best=parseInt(localStorage.getItem('runner_best')||'0')||0; if(localStorage.getItem('runner_sound')==='off')soundEnabled=false; }catch(e){best=0;}
+
+let audioCtx=null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playJump(){ tone(500,0.1,'square',0.07); setTimeout(()=>tone(700,0.08,'square',0.05),40); }
+function playCoin(){ tone(900,0.06,'triangle',0.08); setTimeout(()=>tone(1300,0.08,'triangle',0.06),40); }
+function playHit(){ [300,200,150].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sawtooth',0.1),i*70)); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('runner_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+function resize(){
+  const rect=document.getElementById('app').getBoundingClientRect();
+  W=rect.width;H=rect.height;DPR=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  groundY=H-80;
+}
+window.addEventListener('resize',resize); resize();
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('gameover-screen').classList.add('hidden');
+  charEmoji=CHARS[Math.floor(Math.random()*CHARS.length)];
+  player={ x:W*0.2, y:groundY-30, vy:0, w:36, h:36, jumps:0, onGround:true };
+  obstacles=[]; coins=[]; particles=[];
+  clouds=[]; for(let i=0;i<4;i++)clouds.push({x:Math.random()*W,y:40+Math.random()*120,s:0.4+Math.random()*0.6});
+  score=0; coinCount=0; speed=300; spawnTimer=0.8; coinTimer=1.5; distance=0;
+  gameState='playing'; updateHUD();
+}
+window.startGame=startGame;
+
+function jump(){
+  if(gameState!=='playing')return;
+  if(player.jumps<2){
+    player.vy=player.jumps===0?-580:-500;
+    player.jumps++;
+    player.onGround=false;
+    playJump();
+  }
+}
+window.addEventListener('keydown',(e)=>{ if(e.key===' '||e.key==='ArrowUp'){e.preventDefault();jump();} });
+document.getElementById('app').addEventListener('mousedown',(e)=>{ if(e.target.closest('.btn')||e.target.closest('.sound-toggle'))return; initAudio(); jump(); });
+document.getElementById('app').addEventListener('touchstart',(e)=>{ if(e.target.closest('.btn')||e.target.closest('.sound-toggle'))return; e.preventDefault(); initAudio(); jump(); },{passive:false});
+
+function updateHUD(){
+  document.getElementById('score').textContent=Math.floor(distance);
+  if(Math.floor(distance)>best){ best=Math.floor(distance); }
+  document.getElementById('best').textContent=best;
+}
+
+function update(dt){
+  if(gameState!=='playing')return;
+  distance+=speed*dt*0.05;
+  speed=Math.min(620,300+distance*0.6);
+  // 플레이어 물리
+  player.vy+=1800*dt;
+  player.y+=player.vy*dt;
+  if(player.y+player.h>=groundY){ player.y=groundY-player.h; player.vy=0; player.jumps=0; player.onGround=true; }
+  // 장애물 스폰
+  spawnTimer-=dt;
+  if(spawnTimer<=0){
+    const types=['🌵','🪨','🦔','🍄'];
+    const big=Math.random()<0.3;
+    obstacles.push({ x:W+40, y:groundY-(big?44:32), w:big?44:32, h:big?44:32, emoji:types[Math.floor(Math.random()*types.length)] });
+    spawnTimer=Math.max(0.6,1.3-distance*0.002)+Math.random()*0.5;
+  }
+  // 코인 스폰
+  coinTimer-=dt;
+  if(coinTimer<=0){
+    const cy=groundY-60-Math.random()*120;
+    for(let i=0;i<3;i++)coins.push({ x:W+40+i*36, y:cy, r:12, collected:false });
+    coinTimer=1.5+Math.random()*2;
+  }
+  // 이동
+  for(let i=obstacles.length-1;i>=0;i--){
+    const o=obstacles[i]; o.x-=speed*dt;
+    if(o.x+o.w<0){ obstacles.splice(i,1); continue; }
+    // 충돌
+    if(player.x+player.w-8>o.x && player.x+8<o.x+o.w && player.y+player.h-6>o.y){ gameOver(); return; }
+  }
+  for(let i=coins.length-1;i>=0;i--){
+    const c=coins[i]; c.x-=speed*dt;
+    if(c.x+c.r<0){ coins.splice(i,1); continue; }
+    if(!c.collected && Math.hypot((player.x+player.w/2)-c.x,(player.y+player.h/2)-c.y)<player.w/2+c.r){
+      c.collected=true; coinCount++; score+=10; playCoin();
+      for(let k=0;k<6;k++){const a=Math.random()*Math.PI*2,s=60+Math.random()*80;particles.push({x:c.x,y:c.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.5,maxLife:0.5,color:'#ffe066',r:3});}
+      coins.splice(i,1);
+    }
+  }
+  // 구름
+  for(const cl of clouds){ cl.x-=speed*dt*0.2*cl.s; if(cl.x<-60)cl.x=W+60; }
+  // 파티클
+  for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.vy+=400*dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt; if(p.life<=0)particles.splice(i,1); }
+  updateHUD();
+}
+function gameOver(){
+  gameState='gameover'; playHit();
+  const finalDist=Math.floor(distance);
+  if(finalDist>best){ best=finalDist; try{localStorage.setItem('runner_best',best);}catch(e){} }
+  document.getElementById('final-score').textContent=finalDist;
+  document.getElementById('final-best').textContent=best;
+  document.getElementById('final-coins').textContent=coinCount;
+  setTimeout(()=>document.getElementById('gameover-screen').classList.remove('hidden'),500);
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // 구름
+  ctx.fillStyle='rgba(255,255,255,0.7)';
+  if(clouds)for(const cl of clouds){ ctx.beginPath(); ctx.arc(cl.x,cl.y,16*cl.s,0,7); ctx.arc(cl.x+16*cl.s,cl.y,22*cl.s,0,7); ctx.arc(cl.x+36*cl.s,cl.y,16*cl.s,0,7); ctx.fill(); }
+  // 땅
+  ctx.fillStyle='#c89858'; ctx.fillRect(0,groundY,W,H-groundY);
+  ctx.fillStyle='#a87838'; ctx.fillRect(0,groundY,W,6);
+  // 땅 무늬 (움직임)
+  ctx.fillStyle='rgba(0,0,0,0.06)';
+  const off=(distance*5)%40;
+  for(let x=-off;x<W;x+=40){ ctx.fillRect(x,groundY+20,20,4); }
+  if(gameState==='playing'||gameState==='gameover'){
+    // 코인
+    for(const c of coins){ ctx.font='24px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🪙',c.x,c.y); }
+    // 장애물
+    for(const o of obstacles){ ctx.font=o.w+'px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(o.emoji,o.x+o.w/2,o.y+o.h); }
+    // 플레이어
+    ctx.save(); ctx.translate(player.x+player.w/2,player.y+player.h/2);
+    if(!player.onGround)ctx.rotate(player.vy*0.0003);
+    ctx.font='36px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(charEmoji,0,0); ctx.restore();
+    // 파티클
+    for(const p of particles){ ctx.globalAlpha=Math.max(0,p.life/p.maxLife); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill(); }
+    ctx.globalAlpha=1;
+  }
+}
+let lastTime=0;
+function loop(now){
+  if(!lastTime)lastTime=now;
+  const dt=Math.min(0.05,(now-lastTime)/1000); lastTime=now;
+  update(dt); draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+document.getElementById('best').textContent=best;
+document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇';
+</script>
+</body>
+</html>
