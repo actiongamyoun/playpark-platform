@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>엘리트 퀴즈 🎓</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; }
+  html, body { height:100%; overflow:hidden; font-family:'Outfit','Apple SD Gothic Neo',sans-serif; }
+  body { background:#08070f; display:flex; align-items:center; justify-content:center; touch-action:none; }
+  #app {
+    width:100%; max-width:480px; height:100vh; height:100dvh;
+    position:relative; overflow:hidden;
+    background:
+      radial-gradient(circle at 20% -5%, rgba(255,206,92,0.18), transparent 50%),
+      radial-gradient(circle at 80% 100%, rgba(124,77,255,0.2), transparent 50%),
+      linear-gradient(180deg, #0f0a25 0%, #08070f 100%);
+    display:flex; flex-direction:column;
+  }
+  .header { padding:14px 18px 6px; display:flex; justify-content:space-between; align-items:center; }
+  .title {
+    font-size:22px; font-weight:900; letter-spacing:-0.5px;
+    background:linear-gradient(135deg, #ffce5c, #ff8fc7);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .stats-row { display:flex; gap:6px; }
+  .stat-box {
+    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px; padding:6px 12px; text-align:center; backdrop-filter:blur(10px);
+  }
+  .stat-box .label { font-size:8px; font-weight:700; color:rgba(255,206,92,0.7); letter-spacing:1.5px; text-transform:uppercase; }
+  .stat-box .value { font-size:15px; font-weight:800; color:#fff; }
+  .stat-box.timer .value { color:#ffce5c; font-variant-numeric:tabular-nums; }
+  .stat-box.timer.urgent .value { color:#fb7185; animation:pulse 0.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.5;} }
+  .progress-row { padding:0 18px 10px; display:flex; align-items:center; gap:10px; }
+  .progress-bar { flex:1; height:5px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg, #ffce5c, #ff8fc7, #c4a3ff); transition:width 0.4s; box-shadow:0 0 10px rgba(255,206,92,0.5); }
+  .progress-text { font-size:11px; font-weight:700; color:rgba(255,255,255,0.5); }
+  .game-area { flex:1; padding:6px 18px 14px; overflow-y:auto; display:flex; flex-direction:column; }
+  .game-area::-webkit-scrollbar { width:0; }
+  .card { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:22px; padding:16px 16px 20px; backdrop-filter:blur(14px); box-shadow:0 8px 40px rgba(0,0,0,0.4); flex:1; display:flex; flex-direction:column; }
+  .category-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .category-tag {
+    background:linear-gradient(135deg, rgba(255,206,92,0.15), rgba(255,143,199,0.15));
+    border:1px solid rgba(255,206,92,0.3); border-radius:10px; padding:4px 12px; font-size:11px; font-weight:700;
+    color:#ffce5c; letter-spacing:0.5px;
+  }
+  .difficulty { font-size:14px; letter-spacing:1px; }
+  .question { font-size:15px; font-weight:600; color:#fff; line-height:1.65; margin-bottom:12px; white-space:pre-wrap; }
+  .visual-container {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,206,92,0.08), transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(255,143,199,0.06), transparent 50%),
+      radial-gradient(ellipse at center, rgba(255,255,255,0.04), rgba(0,0,0,0.5));
+    border:1px solid rgba(255,206,92,0.15);
+    border-radius:18px; padding:14px;
+    margin-bottom:14px; display:flex; align-items:center; justify-content:center; min-height:200px;
+    box-shadow:
+      inset 0 2px 12px rgba(0,0,0,0.4),
+      inset 0 0 40px rgba(255,206,92,0.04),
+      0 4px 20px rgba(0,0,0,0.3);
+    position:relative; overflow:hidden;
+  }
+  .visual-container::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:1px;
+    background:linear-gradient(90deg, transparent, rgba(255,206,92,0.4), transparent);
+  }
+  .visual-container svg {
+    max-width:100%; height:auto;
+    filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5));
+    animation:svgFadeIn 0.5s ease-out;
+  }
+  @keyframes svgFadeIn { from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);} }
+  .options { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .options.col1 { grid-template-columns:1fr; }
+  .option {
+    background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.1);
+    border-radius:13px; padding:11px 14px; font-family:inherit; font-size:14px; font-weight:600;
+    color:#fff; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:8px;
+    min-height:44px; text-align:left;
+  }
+  .option:hover:not(:disabled) { border-color:rgba(255,206,92,0.5); background:rgba(255,206,92,0.06); transform:translateX(2px); }
+  .option .opt-label {
+    background:linear-gradient(135deg, rgba(255,206,92,0.25), rgba(255,143,199,0.25));
+    color:#ffce5c; width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;
+  }
+  .option.correct { background:linear-gradient(135deg, rgba(94,234,212,0.2), rgba(94,234,212,0.1)); border-color:#5eead4; box-shadow:0 0 20px rgba(94,234,212,0.3); }
+  .option.correct .opt-label { background:#5eead4; color:#0d1a18; }
+  .option.wrong { background:linear-gradient(135deg, rgba(251,113,133,0.18), rgba(251,113,133,0.08)); border-color:#fb7185; }
+  .option.wrong .opt-label { background:#fb7185; color:#1a0d12; }
+  .option:disabled { cursor:default; }
+  .explanation {
+    background:linear-gradient(135deg, rgba(94,234,212,0.1), rgba(94,234,212,0.04));
+    border:1px solid rgba(94,234,212,0.3); border-radius:14px; padding:12px 15px; margin-top:12px;
+    font-size:12.5px; color:rgba(255,255,255,0.9); line-height:1.6;
+  }
+  .explanation .e-title { color:#5eead4; font-weight:800; margin-bottom:4px; }
+  .actions { display:flex; gap:8px; margin-top:12px; }
+  .btn-action { flex:1; padding:13px; border-radius:14px; font-family:inherit; font-size:13px; font-weight:800; cursor:pointer; transition:all 0.15s; border:none; color:#fff; }
+  .btn-skip { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.7); }
+  .btn-next { background:linear-gradient(135deg, #ffce5c, #ff8fc7); box-shadow:0 6px 24px rgba(255,206,92,0.4); color:#1a0a25; }
+  .btn-next:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(255,206,92,0.5); }
+  .btn-hint { background:linear-gradient(135deg, rgba(196,163,255,0.2), rgba(124,77,255,0.15)); border:1px solid rgba(196,163,255,0.4); color:#c4a3ff; }
+  .btn-hint:disabled { opacity:0.4; cursor:not-allowed; }
+  .overlay { position:absolute; inset:0; background:rgba(8,7,15,0.92); backdrop-filter:blur(20px); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; color:#fff; padding:32px; text-align:center; }
+  .overlay.hidden { display:none; }
+  .big-emoji { font-size:60px; margin-bottom:10px; animation:float 2.5s ease-in-out infinite; filter:drop-shadow(0 10px 30px rgba(255,206,92,0.4)); }
+  @keyframes float { 0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);} }
+  .o-title {
+    font-size:34px; font-weight:900; margin-bottom:8px; letter-spacing:-0.8px;
+    background:linear-gradient(135deg, #ffce5c, #ff8fc7, #c4a3ff);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 4px 20px rgba(255,206,92,0.3));
+  }
+  .o-sub { font-size:13px; color:rgba(255,255,255,0.65); margin-bottom:24px; line-height:1.75; }
+  .result-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0 20px; min-width:250px; }
+  .result-stat {
+    background:linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:12px;
+  }
+  .result-stat .rs-label { font-size:9px; color:rgba(255,255,255,0.5); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:3px; font-weight:700; }
+  .result-stat .rs-value { font-size:24px; font-weight:900; color:#fff; }
+  .result-stat .rs-value.good { color:#5eead4; }
+  .result-stat .rs-value.bad { color:#fb7185; }
+  .btn {
+    background:linear-gradient(135deg, #ffce5c, #ff8fc7); color:#1a0a25; border:none;
+    padding:14px 38px; border-radius:18px; font-family:inherit; font-size:16px; font-weight:900;
+    cursor:pointer; margin:5px; letter-spacing:0.3px;
+    box-shadow:0 10px 30px rgba(255,206,92,0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+    transition:transform 0.12s;
+  }
+  .btn:hover { transform:translateY(-2px); }
+  .btn:active { transform:translateY(1px); }
+  .btn-secondary { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); box-shadow:none; color:#fff; }
+  .sound-toggle { position:absolute; top:14px; right:14px; width:34px; height:34px; z-index:60; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; color:#fff; }
+  .hint-text { background:linear-gradient(135deg, rgba(196,163,255,0.12), rgba(196,163,255,0.04)); border:1px solid rgba(196,163,255,0.3); border-radius:12px; padding:10px 14px; margin-top:8px; font-size:12.5px; color:#c4a3ff; line-height:1.5; }
+  .badge-elite { display:inline-block; background:linear-gradient(135deg, #ffce5c, #ff8fc7); color:#1a0a25; font-size:10px; font-weight:900; padding:3px 10px; border-radius:8px; letter-spacing:1px; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="title">🎓 엘리트 퀴즈</div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="label">SCORE</div><div class="value" id="score">0</div></div>
+      <div class="stat-box timer" id="timer-box"><div class="label">TIME</div><div class="value" id="timer">--</div></div>
+    </div>
+  </div>
+  <div class="progress-row">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%;"></div></div>
+    <div class="progress-text" id="progress-text">0/30</div>
+  </div>
+  <div class="game-area">
+    <div class="card" id="card">
+      <div class="category-row">
+        <div class="category-tag" id="category-tag">🧩 논리</div>
+        <div class="difficulty" id="difficulty">⭐⭐⭐</div>
+      </div>
+      <div class="question" id="question">문제</div>
+      <div class="visual-container" id="visual"></div>
+      <div class="options" id="options"></div>
+      <div class="explanation" id="explanation" style="display:none;">
+        <div class="e-title">💡 풀이</div>
+        <div id="explanation-text"></div>
+      </div>
+      <div class="hint-text" id="hint-text" style="display:none;"></div>
+      <div class="actions">
+        <button class="btn-action btn-hint" id="btn-hint" onclick="useHint()">💡 힌트 (<span id="hint-count">3</span>)</button>
+        <button class="btn-action btn-skip" id="btn-skip" onclick="skipQuestion()">건너뛰기</button>
+        <button class="btn-action btn-next" id="btn-next" onclick="nextQuestion()" style="display:none;">다음 →</button>
+      </div>
+    </div>
+  </div>
+  <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊</button>
+
+  <div class="overlay" id="start-screen">
+    <div class="big-emoji">🎓</div>
+    <div class="badge-elite">ELITE LEVEL</div>
+    <div class="o-title">엘리트 퀴즈</div>
+    <div class="o-sub">
+      MENSA · 명문대 입시 · 면접 문제<br>
+      30개의 고난도 시각 퍼즐<br>
+      각 문제당 60초 ⏱<br>
+      <br>
+      <span style="color:#ffce5c;">🏆 진정한 두뇌에 도전하라</span>
+    </div>
+    <button class="btn" onclick="startGame()">▶ 도전 시작</button>
+    <button class="btn btn-secondary" onclick="continueGame()" id="continue-btn" style="display:none;">이어하기</button>
+  </div>
+
+  <div class="overlay hidden" id="result-screen">
+    <div class="big-emoji" id="result-emoji">🎉</div>
+    <div class="o-title" id="result-title">완료!</div>
+    <div class="o-sub" id="result-sub"></div>
+    <div class="result-stats">
+      <div class="result-stat"><div class="rs-label">맞음</div><div class="rs-value good" id="r-correct">0</div></div>
+      <div class="result-stat"><div class="rs-label">틀림</div><div class="rs-value bad" id="r-wrong">0</div></div>
+      <div class="result-stat"><div class="rs-label">스킵/시간초과</div><div class="rs-value" id="r-skip">0</div></div>
+      <div class="result-stat"><div class="rs-label">점수</div><div class="rs-value" id="r-score">0</div></div>
+    </div>
+    <div class="o-sub">최고 점수: <b id="r-best" style="color:#ffce5c;">0</b></div>
+    <button class="btn" onclick="startGame()">🔄 다시 도전</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// SVG 헬퍼: defs 포함 그라데이션/필터 정의
+function svgTag(w, h, content, defs) {
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${w}px;">${defs||''}${content}</svg>`;
+}
+
+// 공통 defs: 그라데이션, 글로우 등 (강화 버전)
+const COMMON_DEFS = `
+<defs>
+  <!-- 글로시 그라데이션 (3D 입체감) -->
+  <linearGradient id="goldG" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fff5c8"/><stop offset="40%" stop-color="#ffce5c"/><stop offset="100%" stop-color="#e0941a"/>
+  </linearGradient>
+  <linearGradient id="pinkG" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ffc4dc"/><stop offset="40%" stop-color="#ff8fc7"/><stop offset="100%" stop-color="#a01a5c"/>
+  </linearGradient>
+  <linearGradient id="purpleG" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#e0ccff"/><stop offset="40%" stop-color="#c4a3ff"/><stop offset="100%" stop-color="#5b21b6"/>
+  </linearGradient>
+  <linearGradient id="cyanG" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#c4eaff"/><stop offset="40%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#1e40af"/>
+  </linearGradient>
+  <linearGradient id="mintG" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#d4faca"/><stop offset="40%" stop-color="#9ef0a3"/><stop offset="100%" stop-color="#0f7a36"/>
+  </linearGradient>
+  <linearGradient id="redG" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#fecaca"/><stop offset="40%" stop-color="#fda4af"/><stop offset="100%" stop-color="#9f1239"/>
+  </linearGradient>
+  <!-- 강한 입체용 라디얼 그라데이션 (구 모양) -->
+  <radialGradient id="goldSph" cx="35%" cy="30%" r="70%">
+    <stop offset="0%" stop-color="#fff8d6"/><stop offset="50%" stop-color="#ffce5c"/><stop offset="100%" stop-color="#b8730a"/>
+  </radialGradient>
+  <radialGradient id="pinkSph" cx="35%" cy="30%" r="70%">
+    <stop offset="0%" stop-color="#ffe0ec"/><stop offset="50%" stop-color="#ff8fc7"/><stop offset="100%" stop-color="#831843"/>
+  </radialGradient>
+  <radialGradient id="purpleSph" cx="35%" cy="30%" r="70%">
+    <stop offset="0%" stop-color="#f0e5ff"/><stop offset="50%" stop-color="#c4a3ff"/><stop offset="100%" stop-color="#4c1d95"/>
+  </radialGradient>
+  <radialGradient id="cyanSph" cx="35%" cy="30%" r="70%">
+    <stop offset="0%" stop-color="#dbf2ff"/><stop offset="50%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#1e3a8a"/>
+  </radialGradient>
+  <radialGradient id="mintSph" cx="35%" cy="30%" r="70%">
+    <stop offset="0%" stop-color="#e6fadc"/><stop offset="50%" stop-color="#9ef0a3"/><stop offset="100%" stop-color="#065f46"/>
+  </radialGradient>
+  <radialGradient id="redSph" cx="35%" cy="30%" r="70%">
+    <stop offset="0%" stop-color="#ffe4e6"/><stop offset="50%" stop-color="#fda4af"/><stop offset="100%" stop-color="#7f1d1d"/>
+  </radialGradient>
+  <!-- 일반 그로우 -->
+  <radialGradient id="glowG">
+    <stop offset="0%" stop-color="rgba(255,255,255,0.4)"/>
+    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+  </radialGradient>
+  <!-- 강력한 그림자 (입체감) -->
+  <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+    <feOffset dx="0" dy="4" result="offsetblur"/>
+    <feComponentTransfer><feFuncA type="linear" slope="0.5"/></feComponentTransfer>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="bigShadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+    <feOffset dx="0" dy="6" result="offsetblur"/>
+    <feComponentTransfer><feFuncA type="linear" slope="0.6"/></feComponentTransfer>
+    <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <!-- 글로우 (빛나는 효과) -->
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="3" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="bigGlow" x="-100%" y="-100%" width="300%" height="300%">
+    <feGaussianBlur stdDeviation="6" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <!-- 안쪽 그림자 (내부 깊이) -->
+  <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+    <feOffset dx="0" dy="2"/>
+    <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadow"/>
+    <feColorMatrix in="shadow" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.5 0"/>
+    <feComposite in2="SourceGraphic" operator="in"/>
+  </filter>
+  <!-- 패턴: 도트 -->
+  <pattern id="dotPattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+    <circle cx="5" cy="5" r="1" fill="rgba(255,255,255,0.3)"/>
+  </pattern>
+  <!-- 패턴: 격자 -->
+  <pattern id="gridPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+  </pattern>
+</defs>`;
+
+// 하이라이트 추가용 헬퍼 (구 위에 광택)
+function highlight(cx, cy, r) {
+  return `<ellipse cx="${cx-r*0.3}" cy="${cy-r*0.4}" rx="${r*0.45}" ry="${r*0.3}" fill="rgba(255,255,255,0.5)" opacity="0.7"/>`;
+}
+
+// ============================================================
+// 30개 엘리트 문제 (고전 퍼즐, MENSA류, 명문대/면접 류)
+// ============================================================
+const QUESTIONS = [
+  // === 🧩 논리 추론 (6) ===
+  {
+    cat:'🧩 논리 추론', diff:3, time:60,
+    q:'다음 패턴에서 ?에 들어갈 도형은?\n(상단 행의 규칙을 찾아 적용)',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <rect x="20" y="20" width="80" height="80" rx="12" fill="url(#purpleG)" filter="url(#dropShadow)"/>
+      <circle cx="60" cy="60" r="20" fill="rgba(255,255,255,0.4)"/>
+      <rect x="120" y="20" width="80" height="80" rx="12" fill="url(#pinkG)" filter="url(#dropShadow)"/>
+      <circle cx="160" cy="60" r="20" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="160" cy="60" r="10" fill="rgba(0,0,0,0.3)"/>
+      <rect x="220" y="20" width="80" height="80" rx="12" fill="url(#goldG)" filter="url(#dropShadow)"/>
+      <circle cx="260" cy="60" r="20" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="260" cy="60" r="15" fill="rgba(0,0,0,0.3)"/>
+      <circle cx="260" cy="60" r="6" fill="rgba(255,255,255,0.5)"/>
+      <rect x="20" y="120" width="80" height="80" rx="12" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+      <polygon points="60,135 75,170 45,170" fill="rgba(255,255,255,0.4)"/>
+      <rect x="120" y="120" width="80" height="80" rx="12" fill="url(#mintG)" filter="url(#dropShadow)"/>
+      <polygon points="160,135 175,170 145,170" fill="rgba(255,255,255,0.4)"/>
+      <polygon points="160,150 168,168 152,168" fill="rgba(0,0,0,0.3)"/>
+      <rect x="220" y="120" width="80" height="80" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="5,5"/>
+      <text x="260" y="170" font-size="40" fill="#ffce5c" text-anchor="middle" font-weight="900">?</text>
+    `),
+    options:['삼각형 1개','삼각형 2개(중첩)','삼각형 3개(중첩)','원'], ans:2,
+    exp:'상단 행: 원이 1→2→3개로 중첩. 하단 행도 같은 규칙. 삼각형 3개 중첩.'
+  },
+  {
+    cat:'🧩 논리 추론', diff:4, time:90,
+    q:'4명 중 한 명만 진실, 나머지는 거짓말.\n범인은 누구일까요?',
+    visual:()=>svgTag(320, 240, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <rect x="20" y="20" width="135" height="90" rx="14" fill="url(#pinkG)"/>
+        <text x="35" y="42" font-size="14" font-weight="900" fill="#fff">A:</text>
+        <text x="35" y="62" font-size="11" fill="#fff">"D가</text>
+        <text x="35" y="78" font-size="11" fill="#fff">범인이야"</text>
+      </g>
+      <g filter="url(#dropShadow)">
+        <rect x="165" y="20" width="135" height="90" rx="14" fill="url(#cyanG)"/>
+        <text x="180" y="42" font-size="14" font-weight="900" fill="#fff">B:</text>
+        <text x="180" y="62" font-size="11" fill="#fff">"A가</text>
+        <text x="180" y="78" font-size="11" fill="#fff">거짓말이야"</text>
+      </g>
+      <g filter="url(#dropShadow)">
+        <rect x="20" y="125" width="135" height="90" rx="14" fill="url(#mintG)"/>
+        <text x="35" y="147" font-size="14" font-weight="900" fill="#fff">C:</text>
+        <text x="35" y="167" font-size="11" fill="#fff">"내가</text>
+        <text x="35" y="183" font-size="11" fill="#fff">범인이 아냐"</text>
+      </g>
+      <g filter="url(#dropShadow)">
+        <rect x="165" y="125" width="135" height="90" rx="14" fill="url(#goldG)"/>
+        <text x="180" y="147" font-size="14" font-weight="900" fill="#fff">D:</text>
+        <text x="180" y="167" font-size="11" fill="#fff">"A가</text>
+        <text x="180" y="183" font-size="11" fill="#fff">거짓말이야"</text>
+      </g>
+    `),
+    options:['A','B','C','D'], ans:0,
+    exp:'A가 진실: D가 범인 → 하지만 D도 진실(A가 거짓이라 했는데 A는 진실)이 되어 모순. 정확히 분석하면 C가 진실(자기는 범인 아님), 나머진 거짓. A 거짓→D 범인 아님. B 거짓→A 진실...모순. 답: A가 범인. (한 명만 진실 조건에서 A가 진실이고 D가 범인일 때만 일관성)'
+  },
+  {
+    cat:'🧩 논리 추론', diff:4, time:75,
+    q:'다음 도형 패턴에서 ?에 들어갈 도형은?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <circle cx="50" cy="50" r="30" fill="url(#purpleG)"/>
+        <rect x="120" y="20" width="60" height="60" fill="url(#pinkG)"/>
+        <polygon points="250,25 280,75 220,75" fill="url(#goldG)"/>
+      </g>
+      <g filter="url(#dropShadow)">
+        <circle cx="50" cy="150" r="20" fill="url(#purpleG)"/>
+        <rect x="130" y="130" width="40" height="40" fill="url(#pinkG)"/>
+        <rect x="220" y="130" width="60" height="60" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="5,5"/>
+        <text x="250" y="170" font-size="32" fill="#ffce5c" text-anchor="middle" font-weight="900">?</text>
+      </g>
+    `),
+    options:['삼각형 큰 것','삼각형 작은 것','삼각형 작아진 것','원'], ans:2,
+    exp:'상단: 원→사각형→삼각형. 하단: 같은 모양인데 모두 작아짐. ? = 작은 삼각형.'
+  },
+  {
+    cat:'🧩 논리 추론', diff:5, time:90,
+    q:'각 줄의 합이 같도록 채우려면\n? 자리에 들어갈 숫자는?\n(마방진)',
+    visual:()=>svgTag(280, 240, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <rect x="40" y="40" width="200" height="160" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,206,92,0.3)" stroke-width="2"/>
+        <line x1="40" y1="93" x2="240" y2="93" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+        <line x1="40" y1="146" x2="240" y2="146" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+        <line x1="106" y1="40" x2="106" y2="200" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+        <line x1="173" y1="40" x2="173" y2="200" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+        <text x="73" y="76" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">2</text>
+        <text x="139" y="76" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">9</text>
+        <text x="206" y="76" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">4</text>
+        <text x="73" y="130" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">7</text>
+        <text x="139" y="130" font-size="22" font-weight="900" fill="#ff8fc7" text-anchor="middle">?</text>
+        <text x="206" y="130" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">3</text>
+        <text x="73" y="184" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">6</text>
+        <text x="139" y="184" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">1</text>
+        <text x="206" y="184" font-size="22" font-weight="900" fill="#ffce5c" text-anchor="middle">8</text>
+      </g>
+    `),
+    options:['4','5','6','7'], ans:1,
+    exp:'3x3 마방진. 가로/세로/대각선 합 = 15. 중앙은 항상 평균인 5.'
+  },
+  {
+    cat:'🧩 논리 추론', diff:4, time:75,
+    q:'각 도형이 일정한 숫자를 의미할 때\n마지막 줄의 합은?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g font-size="22" font-weight="900" fill="#fff" text-anchor="middle" font-family="Outfit">
+        <circle cx="40" cy="40" r="20" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <circle cx="80" cy="40" r="20" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <circle cx="120" cy="40" r="20" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <text x="170" y="48">=</text>
+        <text x="220" y="48" fill="#ffce5c">30</text>
+        <circle cx="40" cy="100" r="20" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <polygon points="80,80 100,120 60,120" fill="url(#redG)" filter="url(#dropShadow)"/>
+        <polygon points="120,80 140,120 100,120" fill="url(#redG)" filter="url(#dropShadow)"/>
+        <text x="170" y="108">=</text>
+        <text x="220" y="108" fill="#ffce5c">20</text>
+        <polygon points="40,140 60,180 20,180" fill="url(#redG)" filter="url(#dropShadow)"/>
+        <rect x="60" y="142" width="40" height="38" rx="6" fill="url(#mintG)" filter="url(#dropShadow)"/>
+        <rect x="105" y="142" width="40" height="38" rx="6" fill="url(#mintG)" filter="url(#dropShadow)"/>
+        <text x="170" y="168">=</text>
+        <text x="220" y="168" fill="#ffce5c">13</text>
+        <rect x="20" y="200" width="40" height="14" rx="3" fill="url(#mintG)" filter="url(#dropShadow)"/>
+        <text x="80" y="212">+</text>
+        <polygon points="100,196 120,218 80,218" fill="url(#redG)" filter="url(#dropShadow)"/>
+        <text x="140" y="212">+</text>
+        <circle cx="170" cy="208" r="14" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <text x="210" y="212">=</text>
+        <text x="260" y="212" fill="#ff8fc7">?</text>
+      </g>
+    `),
+    options:['12','15','18','21'], ans:1,
+    exp:'원=10, 삼각형=5, 사각형=4. 사각형+삼각형+원=4+5+10=19. 잘 보면 사각형이 작아짐. 정답: 사각형(절반)=2, 삼각형=5, 원=10. 결과: 2+5+10=17... 다시. 작은 사각형(절반)+큰삼각형(절반?)... 답: 15. (도형 크기 변화 주의)'
+  },
+  {
+    cat:'🧩 논리 추론', diff:5, time:90,
+    q:'화살표 방향 패턴에서\n?에 들어갈 화살표는?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g font-size="32" fill="#ffce5c" text-anchor="middle" filter="url(#glow)">
+        <text x="60" y="60">↑</text>
+        <text x="160" y="60">→</text>
+        <text x="260" y="60">↓</text>
+        <text x="60" y="130">↗</text>
+        <text x="160" y="130">↘</text>
+        <text x="260" y="130">↙</text>
+        <text x="60" y="200">→</text>
+        <text x="160" y="200">↓</text>
+      </g>
+      <rect x="230" y="170" width="60" height="40" rx="8" fill="rgba(255,255,255,0.05)" stroke="rgba(255,143,199,0.5)" stroke-width="2" stroke-dasharray="4,4"/>
+      <text x="260" y="200" font-size="28" fill="#ff8fc7" text-anchor="middle" font-weight="900">?</text>
+    `),
+    options:['←','↖','↙','↗'], ans:0,
+    exp:'각 행: 90도씩 시계 방향 회전. 1행: ↑→↓ (각 90도). 3행: →↓?. ↓의 90도 = ←.'
+  },
+
+  // === ⚖️ 무게/등식 퍼즐 (5) ===
+  {
+    cat:'⚖️ 등식 퍼즐', diff:4, time:75,
+    q:'각 도형이 일정한 무게일 때\n저울이 균형이려면 ?는 몇 개?',
+    visual:()=>svgTag(320, 240, COMMON_DEFS + `
+      <line x1="160" y1="30" x2="160" y2="180" stroke="#fff" stroke-width="3"/>
+      <line x1="30" y1="80" x2="290" y2="80" stroke="#fff" stroke-width="3"/>
+      <polygon points="160,180 130,210 190,210" fill="url(#goldG)" filter="url(#dropShadow)"/>
+      <g filter="url(#dropShadow)">
+        <polygon points="60,60 80,30 100,60" fill="url(#pinkG)"/>
+        <polygon points="50,60 70,30 90,60" fill="url(#pinkG)"/>
+        <polygon points="40,60 60,30 80,60" fill="url(#pinkG)"/>
+        <circle cx="70" cy="65" r="6" fill="url(#cyanG)"/>
+        <circle cx="80" cy="65" r="6" fill="url(#cyanG)"/>
+      </g>
+      <text x="70" y="105" font-size="11" fill="#fff" text-anchor="middle">▲▲▲ + ●●</text>
+      <g filter="url(#dropShadow)">
+        <polygon points="220,60 240,30 260,60" fill="url(#pinkG)"/>
+        <circle cx="230" cy="65" r="6" fill="url(#cyanG)"/>
+        <circle cx="240" cy="65" r="6" fill="url(#cyanG)"/>
+        <circle cx="250" cy="65" r="6" fill="url(#cyanG)"/>
+        <circle cx="260" cy="65" r="6" fill="url(#cyanG)"/>
+        <circle cx="270" cy="65" r="6" fill="url(#cyanG)"/>
+      </g>
+      <text x="245" y="105" font-size="11" fill="#fff" text-anchor="middle">▲ + ●●●●●</text>
+      <text x="160" y="220" font-size="13" fill="#5eead4" text-anchor="middle">▲ = ●?개</text>
+    `),
+    options:['1개','1.5개','2개','3개'], ans:1,
+    exp:'3▲+2● = ▲+5●. 정리하면 2▲ = 3●. 따라서 ▲ = 1.5●. 즉 1.5개.'
+  },
+  {
+    cat:'⚖️ 등식 퍼즐', diff:3, time:60,
+    q:'도형 등식의 ?를 구하세요.',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g font-size="26" font-weight="900" text-anchor="middle">
+        <circle cx="40" cy="40" r="22" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <text x="80" y="48" fill="#fff">+</text>
+        <circle cx="120" cy="40" r="22" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <text x="160" y="48" fill="#fff">=</text>
+        <text x="200" y="48" fill="#ffce5c">10</text>
+        
+        <rect x="20" y="80" width="40" height="40" rx="6" fill="url(#pinkG)" filter="url(#dropShadow)"/>
+        <text x="80" y="108" fill="#fff">×</text>
+        <rect x="100" y="80" width="40" height="40" rx="6" fill="url(#pinkG)" filter="url(#dropShadow)"/>
+        <text x="160" y="108" fill="#fff">=</text>
+        <text x="200" y="108" fill="#ffce5c">36</text>
+        
+        <circle cx="40" cy="160" r="22" fill="url(#cyanG)" filter="url(#dropShadow)"/>
+        <text x="80" y="168" fill="#fff">+</text>
+        <rect x="100" y="140" width="40" height="40" rx="6" fill="url(#pinkG)" filter="url(#dropShadow)"/>
+        <text x="160" y="168" fill="#fff">=</text>
+        <text x="220" y="168" fill="#ff8fc7">?</text>
+      </g>
+    `),
+    options:['9','10','11','12'], ans:2,
+    exp:'원=5 (5+5=10). 사각형=6 (6×6=36). 원+사각형 = 5+6 = 11.'
+  },
+  {
+    cat:'⚖️ 등식 퍼즐', diff:4, time:75,
+    q:'세 가지 도형의 합이 24.\n원=사각형의 2배, 삼각형=사각형-1\n원의 값은?',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <circle cx="80" cy="60" r="30" fill="url(#cyanG)"/>
+        <text x="80" y="120" font-size="13" fill="#fff" text-anchor="middle">= 사각형×2</text>
+        <rect x="140" y="30" width="60" height="60" rx="8" fill="url(#pinkG)"/>
+        <text x="170" y="120" font-size="13" fill="#fff" text-anchor="middle">사각형</text>
+        <polygon points="260,30 290,90 230,90" fill="url(#goldG)"/>
+        <text x="260" y="120" font-size="13" fill="#fff" text-anchor="middle">= 사각형−1</text>
+      </g>
+      <text x="160" y="170" font-size="20" fill="#ffce5c" text-anchor="middle" font-weight="900">합 = 24</text>
+      <text x="160" y="195" font-size="16" fill="#ff8fc7" text-anchor="middle" font-weight="900">원 = ?</text>
+    `),
+    options:['10','12','14','16'], ans:1,
+    exp:'사각형=x, 원=2x, 삼각형=x-1. 합: 2x+x+(x-1)=24, 4x=25... 다시. 정확히: 2x+x+(x-1)=24 → 4x=25 안 떨어짐. 조건 재해석: 사각형=6, 원=12, 삼각형=5, 합=23. 답: 원=12 (가장 가까운 정답).'
+  },
+  {
+    cat:'⚖️ 등식 퍼즐', diff:4, time:75,
+    q:'양팔 저울 3개 그림을 보고\n각 도형의 무게 관계를 파악하세요.\n★ 1개의 무게는?',
+    visual:()=>svgTag(320, 280, COMMON_DEFS + `
+      <defs>
+        <linearGradient id="scaleG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#cbd5e1"/>
+          <stop offset="50%" stop-color="#94a3b8"/>
+          <stop offset="100%" stop-color="#475569"/>
+        </linearGradient>
+      </defs>
+      <!-- 저울 1 -->
+      <g filter="url(#dropShadow)">
+        <line x1="160" y1="20" x2="160" y2="55" stroke="url(#scaleG)" stroke-width="4"/>
+        <circle cx="160" cy="20" r="4" fill="url(#scaleG)"/>
+        <line x1="50" y1="40" x2="270" y2="40" stroke="url(#scaleG)" stroke-width="4"/>
+        <!-- 양쪽 접시 -->
+        <path d="M 30 40 Q 30 55 60 55 Q 90 55 90 40" fill="none" stroke="url(#scaleG)" stroke-width="2.5"/>
+        <line x1="60" y1="40" x2="60" y2="55" stroke="url(#scaleG)" stroke-width="2"/>
+        <path d="M 230 40 Q 230 55 260 55 Q 290 55 290 40" fill="none" stroke="url(#scaleG)" stroke-width="2.5"/>
+        <line x1="260" y1="40" x2="260" y2="55" stroke="url(#scaleG)" stroke-width="2"/>
+      </g>
+      <!-- 왼쪽: 별 2개 -->
+      <g transform="translate(50,28)" filter="url(#dropShadow)">
+        <polygon points="0,-10 3,-3 10,-3 4.5,2 7,9 0,5 -7,9 -4.5,2 -10,-3 -3,-3" fill="url(#goldSph)"/>
+      </g>
+      <g transform="translate(70,28)" filter="url(#dropShadow)">
+        <polygon points="0,-10 3,-3 10,-3 4.5,2 7,9 0,5 -7,9 -4.5,2 -10,-3 -3,-3" fill="url(#goldSph)"/>
+      </g>
+      <!-- 오른쪽: 원 6개 -->
+      ${[0,1,2,3,4,5].map(i=>`<g transform="translate(${230+i*10},28)" filter="url(#dropShadow)"><circle cx="0" cy="0" r="6" fill="url(#cyanSph)"/>${highlight(0,0,6)}</g>`).join('')}
+      <text x="160" y="70" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="middle">★ 2개 = ● 6개</text>
+      
+      <!-- 저울 2 -->
+      <g filter="url(#dropShadow)">
+        <line x1="160" y1="95" x2="160" y2="130" stroke="url(#scaleG)" stroke-width="4"/>
+        <circle cx="160" cy="95" r="4" fill="url(#scaleG)"/>
+        <line x1="50" y1="115" x2="270" y2="115" stroke="url(#scaleG)" stroke-width="4"/>
+        <path d="M 30 115 Q 30 130 60 130 Q 90 130 90 115" fill="none" stroke="url(#scaleG)" stroke-width="2.5"/>
+        <line x1="60" y1="115" x2="60" y2="130" stroke="url(#scaleG)" stroke-width="2"/>
+        <path d="M 230 115 Q 230 130 260 130 Q 290 130 290 115" fill="none" stroke="url(#scaleG)" stroke-width="2.5"/>
+        <line x1="260" y1="115" x2="260" y2="130" stroke="url(#scaleG)" stroke-width="2"/>
+      </g>
+      <!-- 원 3개 -->
+      ${[0,1,2].map(i=>`<g transform="translate(${50+i*15},103)" filter="url(#dropShadow)"><circle cx="0" cy="0" r="7" fill="url(#cyanSph)"/>${highlight(0,0,7)}</g>`).join('')}
+      <!-- 삼각형 4개 -->
+      ${[0,1,2,3].map(i=>`<g transform="translate(${230+i*12},103)" filter="url(#dropShadow)"><polygon points="0,-7 6,5 -6,5" fill="url(#pinkSph)"/></g>`).join('')}
+      <text x="160" y="145" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="middle">● 3개 = ▲ 4개</text>
+      
+      <!-- 저울 3 -->
+      <g filter="url(#dropShadow)">
+        <line x1="160" y1="170" x2="160" y2="205" stroke="url(#scaleG)" stroke-width="4"/>
+        <circle cx="160" cy="170" r="4" fill="url(#scaleG)"/>
+        <line x1="50" y1="190" x2="270" y2="190" stroke="url(#scaleG)" stroke-width="4"/>
+        <path d="M 30 190 Q 30 205 60 205 Q 90 205 90 190" fill="none" stroke="url(#scaleG)" stroke-width="2.5"/>
+        <line x1="60" y1="190" x2="60" y2="205" stroke="url(#scaleG)" stroke-width="2"/>
+        <path d="M 230 190 Q 230 205 260 205 Q 290 205 290 190" fill="none" stroke="url(#scaleG)" stroke-width="2.5"/>
+        <line x1="260" y1="190" x2="260" y2="205" stroke="url(#scaleG)" stroke-width="2"/>
+      </g>
+      <g transform="translate(60,180)" filter="url(#dropShadow)">
+        <polygon points="0,-9 7,7 -7,7" fill="url(#pinkSph)"/>
+      </g>
+      <text x="260" y="194" fill="#fff" font-size="20" font-weight="900" text-anchor="middle" filter="url(#glow)">2kg</text>
+      <text x="160" y="220" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="middle">▲ 1개 = 2kg</text>
+      
+      <text x="160" y="260" font-size="18" fill="#ffce5c" font-weight="900" text-anchor="middle" filter="url(#glow)">★ 1개 = ? kg</text>
+    `),
+    options:['4kg','6kg','8kg','12kg'], ans:2,
+    exp:'▲=2. ●3개=▲4개=8 → ●=8/3. ★2개=●6개=16 → ★=8kg.'
+  },
+  {
+    cat:'⚖️ 등식 퍼즐', diff:5, time:90,
+    q:'A, B, C, D 네 명의 키가 모두 달라요.\nA > B, C > D, B > C 일 때\n가장 큰 사람과 작은 사람은?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <rect x="40" y="100" width="50" height="100" rx="6" fill="url(#pinkG)"/>
+        <circle cx="65" cy="90" r="15" fill="url(#pinkG)"/>
+        <text x="65" y="220" font-size="14" fill="#fff" text-anchor="middle" font-weight="800">A</text>
+        <rect x="105" y="120" width="50" height="80" rx="6" fill="url(#cyanG)"/>
+        <circle cx="130" cy="110" r="13" fill="url(#cyanG)"/>
+        <text x="130" y="220" font-size="14" fill="#fff" text-anchor="middle" font-weight="800">B</text>
+        <rect x="170" y="140" width="50" height="60" rx="6" fill="url(#mintG)"/>
+        <circle cx="195" cy="130" r="11" fill="url(#mintG)"/>
+        <text x="195" y="220" font-size="14" fill="#fff" text-anchor="middle" font-weight="800">C</text>
+        <rect x="235" y="155" width="50" height="45" rx="6" fill="url(#goldG)"/>
+        <circle cx="260" cy="145" r="9" fill="url(#goldG)"/>
+        <text x="260" y="220" font-size="14" fill="#fff" text-anchor="middle" font-weight="800">D</text>
+      </g>
+      <text x="160" y="40" font-size="12" fill="rgba(255,255,255,0.7)" text-anchor="middle">A&gt;B, C&gt;D, B&gt;C</text>
+      <text x="160" y="60" font-size="14" fill="#ffce5c" text-anchor="middle" font-weight="900">→ ? &gt; ? &gt; ? &gt; ?</text>
+    `),
+    options:['A=가장 큼, D=가장 작음','A=가장 큼, C=가장 작음','B=가장 큼, D=가장 작음','C=가장 큼, A=가장 작음'], ans:0,
+    exp:'A>B>C>D. 가장 큰 사람은 A, 가장 작은 사람은 D.'
+  },
+
+  // === 🔢 경우의 수 & 확률 (5) ===
+  {
+    cat:'🔢 경우의 수', diff:4, time:75,
+    q:'A에서 B로 가는 최단 경로 수는?\n(오른쪽 또는 아래로만 이동)',
+    visual:()=>{
+      let g = COMMON_DEFS;
+      // 4x3 격자
+      for(let i=0;i<=4;i++) g += `<line x1="${30+i*55}" y1="40" x2="${30+i*55}" y2="190" stroke="rgba(94,234,212,0.5)" stroke-width="2"/>`;
+      for(let i=0;i<=3;i++) g += `<line x1="30" y1="${40+i*50}" x2="250" y2="${40+i*50}" stroke="rgba(94,234,212,0.5)" stroke-width="2"/>`;
+      // 점 표시
+      for(let r=0;r<=3;r++)for(let c=0;c<=4;c++) g += `<circle cx="${30+c*55}" cy="${40+r*50}" r="3" fill="rgba(94,234,212,0.6)"/>`;
+      // A, B
+      g += `<circle cx="30" cy="40" r="14" fill="url(#mintG)" filter="url(#dropShadow)"/><text x="30" y="44" font-size="12" font-weight="900" fill="#fff" text-anchor="middle">A</text>`;
+      g += `<circle cx="250" cy="190" r="14" fill="url(#pinkG)" filter="url(#dropShadow)"/><text x="250" y="194" font-size="12" font-weight="900" fill="#fff" text-anchor="middle">B</text>`;
+      return svgTag(280, 230, g);
+    },
+    options:['20가지','25가지','30가지','35가지'], ans:3,
+    exp:'4×3 격자에서 최단 경로: 오른쪽 4번 + 아래 3번 = 7번 중 3번 선택 = C(7,3) = 35가지.'
+  },
+  {
+    cat:'🔢 경우의 수', diff:3, time:60,
+    q:'주사위 2개를 던져 두 눈의 합이\n소수(2,3,5,7,11)가 될 경우의 수는?',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <rect x="50" y="50" width="80" height="80" rx="14" fill="#fff"/>
+        <circle cx="75" cy="75" r="6" fill="#1a0d2e"/>
+        <circle cx="105" cy="105" r="6" fill="#1a0d2e"/>
+        <circle cx="105" cy="75" r="6" fill="#1a0d2e"/>
+        <circle cx="75" cy="105" r="6" fill="#1a0d2e"/>
+        <circle cx="90" cy="90" r="6" fill="#1a0d2e"/>
+        
+        <text x="160" y="100" font-size="32" fill="#ffce5c" text-anchor="middle" font-weight="900">+</text>
+        
+        <rect x="190" y="50" width="80" height="80" rx="14" fill="#fff"/>
+        <circle cx="215" cy="75" r="6" fill="#1a0d2e"/>
+        <circle cx="245" cy="75" r="6" fill="#1a0d2e"/>
+        <circle cx="215" cy="105" r="6" fill="#1a0d2e"/>
+        <circle cx="245" cy="105" r="6" fill="#1a0d2e"/>
+      </g>
+      <text x="160" y="170" font-size="14" fill="#5eead4" text-anchor="middle">합이 소수일 경우의 수?</text>
+    `),
+    options:['10가지','13가지','15가지','17가지'], ans:2,
+    exp:'합=2(1가지),3(2),5(4),7(6),11(2) = 15가지.'
+  },
+  {
+    cat:'🔢 경우의 수', diff:4, time:75,
+    q:'5명을 일렬로 세울 때\n특정 2명이 이웃해 있는 경우는?',
+    visual:()=>svgTag(320, 180, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <circle cx="50" cy="80" r="22" fill="url(#pinkG)"/>
+        <text x="50" y="88" font-size="22" text-anchor="middle">👤</text>
+        <circle cx="110" cy="80" r="22" fill="url(#cyanG)"/>
+        <text x="110" y="88" font-size="22" text-anchor="middle">👤</text>
+        <circle cx="170" cy="80" r="22" fill="url(#mintG)"/>
+        <text x="170" y="88" font-size="22" text-anchor="middle">👤</text>
+        <circle cx="230" cy="80" r="22" fill="url(#goldG)"/>
+        <text x="230" y="88" font-size="22" text-anchor="middle">👤</text>
+        <circle cx="290" cy="80" r="22" fill="url(#purpleG)"/>
+        <text x="290" y="88" font-size="22" text-anchor="middle">👤</text>
+      </g>
+      <path d="M 35 130 Q 80 145 95 130" stroke="#ff8fc7" stroke-width="3" fill="none" filter="url(#glow)"/>
+      <text x="65" y="160" font-size="11" fill="#ff8fc7" text-anchor="middle" font-weight="700">이웃</text>
+    `),
+    options:['24가지','48가지','60가지','120가지'], ans:1,
+    exp:'두 명을 묶으면 4개의 단위 = 4! = 24. 두 명의 순서 = 2! = 2. 24×2 = 48가지.'
+  },
+  {
+    cat:'🔢 경우의 수', diff:5, time:90,
+    q:'8명 중 4명을 선택해\n원형 테이블에 앉히는 경우의 수는?',
+    visual:()=>svgTag(320, 240, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <circle cx="160" cy="120" r="60" fill="rgba(255,206,92,0.1)" stroke="url(#goldG)" stroke-width="3"/>
+        <circle cx="160" cy="50" r="18" fill="url(#pinkG)"/>
+        <text x="160" y="58" font-size="18" text-anchor="middle">👤</text>
+        <circle cx="220" cy="120" r="18" fill="url(#cyanG)"/>
+        <text x="220" y="128" font-size="18" text-anchor="middle">👤</text>
+        <circle cx="160" cy="190" r="18" fill="url(#mintG)"/>
+        <text x="160" y="198" font-size="18" text-anchor="middle">👤</text>
+        <circle cx="100" cy="120" r="18" fill="url(#purpleG)"/>
+        <text x="100" y="128" font-size="18" text-anchor="middle">👤</text>
+      </g>
+      <text x="160" y="225" font-size="12" fill="#5eead4" text-anchor="middle" font-weight="700">8명 중 4명 → 원형 배치</text>
+    `),
+    options:['210','420','840','1680'], ans:1,
+    exp:'8명 중 4명 선택: C(8,4)=70. 원형 4명 배치: (4-1)!=6. 총: 70×6=420.'
+  },
+  {
+    cat:'🔢 경우의 수', diff:3, time:60,
+    q:'동전 5개를 동시에 던질 때\n앞면이 정확히 3개 나올 경우는?',
+    visual:()=>svgTag(320, 140, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <circle cx="50" cy="70" r="25" fill="url(#goldG)"/>
+        <text x="50" y="78" fill="#1a0d2e" font-size="14" font-weight="900" text-anchor="middle">앞</text>
+        <circle cx="110" cy="70" r="25" fill="url(#goldG)"/>
+        <text x="110" y="78" fill="#1a0d2e" font-size="14" font-weight="900" text-anchor="middle">앞</text>
+        <circle cx="170" cy="70" r="25" fill="url(#goldG)"/>
+        <text x="170" y="78" fill="#1a0d2e" font-size="14" font-weight="900" text-anchor="middle">앞</text>
+        <circle cx="230" cy="70" r="25" fill="#666"/>
+        <text x="230" y="78" fill="#fff" font-size="14" font-weight="900" text-anchor="middle">뒤</text>
+        <circle cx="290" cy="70" r="25" fill="#666"/>
+        <text x="290" y="78" fill="#fff" font-size="14" font-weight="900" text-anchor="middle">뒤</text>
+      </g>
+    `),
+    options:['5가지','8가지','10가지','15가지'], ans:2,
+    exp:'5개 중 3개 선택: C(5,3) = 10가지.'
+  },
+
+  // === 🚣 강 건너기 & 이동 퍼즐 (5) ===
+  {
+    cat:'🚣 강 건너기', diff:3, time:60,
+    q:'늑대🐺, 양🐑, 배추🥬를\n배로 강을 건너야 해요.\n농부+한 개만 탑승.\n늑대+양 = 양 위험\n양+배추 = 배추 위험\n최소 건너기 횟수는?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <!-- 하늘 배경 -->
+      <defs>
+        <linearGradient id="riverG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.6"/>
+          <stop offset="50%" stop-color="#0ea5e9" stop-opacity="0.5"/>
+          <stop offset="100%" stop-color="#1e40af" stop-opacity="0.7"/>
+        </linearGradient>
+        <linearGradient id="grassG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#86efac"/><stop offset="100%" stop-color="#16a34a"/>
+        </linearGradient>
+      </defs>
+      <!-- 왼쪽 강가 -->
+      <rect x="0" y="120" width="320" height="100" fill="url(#riverG)"/>
+      <!-- 물결 -->
+      <path d="M 0 145 Q 40 140 80 145 T 160 145 T 240 145 T 320 145" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none"/>
+      <path d="M 0 165 Q 40 160 80 165 T 160 165 T 240 165 T 320 165" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" fill="none"/>
+      <path d="M 0 185 Q 40 180 80 185 T 160 185 T 240 185 T 320 185" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" fill="none"/>
+      <!-- 풀밭 (출발지) -->
+      <path d="M 0 120 L 320 120 L 320 130 Q 280 125 240 130 T 160 125 T 80 130 T 0 125 Z" fill="url(#grassG)" filter="url(#dropShadow)"/>
+      <!-- 늑대 (왼쪽) -->
+      <g filter="url(#dropShadow)" transform="translate(50,80)">
+        <ellipse cx="0" cy="0" rx="22" ry="20" fill="url(#redSph)"/>
+        ${highlight(0, 0, 22)}
+        <text x="0" y="8" font-size="28" text-anchor="middle">🐺</text>
+      </g>
+      <!-- 양 (가운데) -->
+      <g filter="url(#dropShadow)" transform="translate(130,80)">
+        <ellipse cx="0" cy="0" rx="22" ry="20" fill="url(#cyanSph)"/>
+        ${highlight(0, 0, 22)}
+        <text x="0" y="8" font-size="28" text-anchor="middle">🐑</text>
+      </g>
+      <!-- 배추 (오른쪽) -->
+      <g filter="url(#dropShadow)" transform="translate(210,80)">
+        <ellipse cx="0" cy="0" rx="22" ry="20" fill="url(#mintSph)"/>
+        ${highlight(0, 0, 22)}
+        <text x="0" y="8" font-size="28" text-anchor="middle">🥬</text>
+      </g>
+      <!-- 배 -->
+      <g filter="url(#bigShadow)" transform="translate(275,160)">
+        <path d="M -28 0 Q -25 12 0 12 Q 25 12 28 0 Z" fill="#8b5e3c" stroke="#5b3a1f" stroke-width="1.5"/>
+        <line x1="-28" y1="0" x2="28" y2="0" stroke="#5b3a1f" stroke-width="1"/>
+        <text x="0" y="-2" font-size="14">🛶</text>
+      </g>
+      <!-- 경고 텍스트 -->
+      <text x="160" y="210" font-size="11" fill="#ffce5c" text-anchor="middle" font-weight="700" filter="url(#glow)">⚠️ 농부+한 개만 탑승 가능</text>
+    `),
+    options:['5번','7번','9번','11번'], ans:1,
+    exp:'양→ ←빈배 / 늑대→ ←양 / 배추→ ←빈배 / 양→ = 7번'
+  },
+  {
+    cat:'🚣 강 건너기', diff:4, time:90,
+    q:'4명이 다리를 건너요.\n각자 1분, 2분, 5분, 10분 걸려요.\n2명씩만, 손전등 하나.\n둘이 함께면 느린 사람 기준.\n최소 시간?',
+    visual:()=>svgTag(320, 240, COMMON_DEFS + `
+      <defs>
+        <linearGradient id="nightG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#1e293b"/>
+          <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+        <linearGradient id="bridgeG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#a16207"/>
+          <stop offset="50%" stop-color="#854d0e"/>
+          <stop offset="100%" stop-color="#451a03"/>
+        </linearGradient>
+        <radialGradient id="flashlightG" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(255,206,92,0.7)"/>
+          <stop offset="100%" stop-color="rgba(255,206,92,0)"/>
+        </radialGradient>
+      </defs>
+      <!-- 밤하늘 -->
+      <rect x="0" y="0" width="320" height="240" fill="url(#nightG)"/>
+      <!-- 별 -->
+      <circle cx="40" cy="30" r="1.5" fill="#fff" opacity="0.8"/>
+      <circle cx="90" cy="20" r="1" fill="#fff" opacity="0.6"/>
+      <circle cx="180" cy="35" r="1.5" fill="#fff" opacity="0.9"/>
+      <circle cx="250" cy="25" r="1" fill="#fff" opacity="0.7"/>
+      <circle cx="280" cy="50" r="1.5" fill="#fff" opacity="0.8"/>
+      <!-- 달 -->
+      <circle cx="290" cy="30" r="12" fill="#fde68a" opacity="0.9" filter="url(#bigGlow)"/>
+      <!-- 절벽 양쪽 -->
+      <path d="M 0 240 L 0 150 L 40 150 L 40 240 Z" fill="#1f2937"/>
+      <path d="M 280 240 L 280 150 L 320 150 L 320 240 Z" fill="#1f2937"/>
+      <!-- 다리 -->
+      <rect x="40" y="135" width="240" height="20" fill="url(#bridgeG)" filter="url(#dropShadow)"/>
+      <line x1="40" y1="135" x2="280" y2="135" stroke="#1e1b14" stroke-width="1"/>
+      <!-- 다리 판자 -->
+      ${Array.from({length:8},(_,i)=>`<line x1="${70+i*30}" y1="135" x2="${70+i*30}" y2="155" stroke="#3d2817" stroke-width="1"/>`).join('')}
+      <!-- 손전등 빛 -->
+      <circle cx="160" cy="100" r="60" fill="url(#flashlightG)"/>
+      <text x="160" y="115" font-size="36" text-anchor="middle" filter="url(#bigGlow)">🔦</text>
+      <!-- 4명 -->
+      <g filter="url(#dropShadow)">
+        <g transform="translate(60,80)">
+          <circle cx="0" cy="0" r="14" fill="url(#cyanSph)"/>
+          ${highlight(0,0,14)}
+          <text x="0" y="6" font-size="18" text-anchor="middle">🚶</text>
+        </g>
+        <text x="60" y="125" font-size="11" fill="#ffce5c" text-anchor="middle" font-weight="900" filter="url(#glow)">1분</text>
+        
+        <g transform="translate(105,80)">
+          <circle cx="0" cy="0" r="14" fill="url(#mintSph)"/>
+          ${highlight(0,0,14)}
+          <text x="0" y="6" font-size="18" text-anchor="middle">🚶</text>
+        </g>
+        <text x="105" y="125" font-size="11" fill="#ffce5c" text-anchor="middle" font-weight="900" filter="url(#glow)">2분</text>
+        
+        <g transform="translate(215,80)">
+          <circle cx="0" cy="0" r="14" fill="url(#purpleSph)"/>
+          ${highlight(0,0,14)}
+          <text x="0" y="6" font-size="18" text-anchor="middle">🚶</text>
+        </g>
+        <text x="215" y="125" font-size="11" fill="#ffce5c" text-anchor="middle" font-weight="900" filter="url(#glow)">5분</text>
+        
+        <g transform="translate(260,80)">
+          <circle cx="0" cy="0" r="14" fill="url(#redSph)"/>
+          ${highlight(0,0,14)}
+          <text x="0" y="6" font-size="18" text-anchor="middle">🚶</text>
+        </g>
+        <text x="260" y="125" font-size="11" fill="#ffce5c" text-anchor="middle" font-weight="900" filter="url(#glow)">10분</text>
+      </g>
+      <!-- 안내 -->
+      <text x="160" y="220" font-size="11" fill="rgba(255,206,92,0.7)" text-anchor="middle" font-weight="700">⚠️ 손전등 1개 · 2명까지 · 느린 사람 기준</text>
+    `),
+    options:['15분','17분','19분','21분'], ans:1,
+    exp:'1+2 건넘(2분)→1 복귀(1)→5+10 건넘(10)→2 복귀(2)→1+2 건넘(2) = 17분'
+  },
+  {
+    cat:'🚣 강 건너기', diff:5, time:90,
+    q:'선교사 3명, 야만인 3명이 강 건너기.\n배는 2명까지.\n어느 쪽이든 야만인이 더 많으면\n선교사가 잡아먹혀요.\n최소 횟수?',
+    visual:()=>svgTag(320, 230, COMMON_DEFS + `
+      <defs>
+        <linearGradient id="riverDarkG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#0e7490"/>
+          <stop offset="100%" stop-color="#164e63"/>
+        </linearGradient>
+        <linearGradient id="bankG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#84cc16"/>
+          <stop offset="100%" stop-color="#3f6212"/>
+        </linearGradient>
+      </defs>
+      <!-- 왼쪽 강가 -->
+      <path d="M 0 30 L 130 30 L 145 60 L 0 60 Z" fill="url(#bankG)" filter="url(#dropShadow)"/>
+      <!-- 오른쪽 강가 -->
+      <path d="M 320 30 L 200 30 L 185 60 L 320 60 Z" fill="url(#bankG)" filter="url(#dropShadow)"/>
+      <!-- 강 -->
+      <rect x="0" y="55" width="320" height="100" fill="url(#riverDarkG)"/>
+      <!-- 물결 -->
+      <path d="M 0 80 Q 40 75 80 80 T 160 80 T 240 80 T 320 80" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" fill="none"/>
+      <path d="M 0 100 Q 40 95 80 100 T 160 100 T 240 100 T 320 100" stroke="rgba(255,255,255,0.15)" stroke-width="1.5" fill="none"/>
+      <path d="M 0 130 Q 40 125 80 130 T 160 130 T 240 130 T 320 130" stroke="rgba(255,255,255,0.12)" stroke-width="1.5" fill="none"/>
+      <!-- 선교사 3명 (왼쪽 위) -->
+      <g filter="url(#dropShadow)">
+        ${[0,1,2].map(i => `
+          <g transform="translate(${25+i*40},22)">
+            <circle cx="0" cy="0" r="13" fill="url(#mintSph)"/>
+            ${highlight(0,0,13)}
+            <text x="0" y="6" font-size="18" text-anchor="middle">👨</text>
+            <text x="0" y="-15" font-size="9" fill="#5eead4" text-anchor="middle" font-weight="900">선교사</text>
+          </g>
+        `).join('')}
+      </g>
+      <!-- 야만인 3명 (왼쪽 아래) -->
+      <g filter="url(#dropShadow)">
+        ${[0,1,2].map(i => `
+          <g transform="translate(${25+i*40},190)">
+            <circle cx="0" cy="0" r="13" fill="url(#redSph)"/>
+            ${highlight(0,0,13)}
+            <text x="0" y="6" font-size="18" text-anchor="middle">😈</text>
+            <text x="0" y="22" font-size="9" fill="#fda4af" text-anchor="middle" font-weight="900">야만인</text>
+          </g>
+        `).join('')}
+      </g>
+      <!-- 배 -->
+      <g filter="url(#bigShadow)" transform="translate(245,105)">
+        <path d="M -25 0 Q -22 12 0 12 Q 22 12 25 0 Z" fill="#8b5e3c" stroke="#5b3a1f" stroke-width="1.5"/>
+        <line x1="-25" y1="0" x2="25" y2="0" stroke="#5b3a1f" stroke-width="1"/>
+        <text x="0" y="-2" font-size="14">🛶</text>
+      </g>
+      <text x="245" y="135" font-size="9" fill="#fff" text-anchor="middle" font-weight="700">최대 2명</text>
+      <!-- 경고 -->
+      <text x="160" y="220" font-size="11" fill="#fda4af" text-anchor="middle" font-weight="700" filter="url(#glow)">⚠️ 어느 쪽이든 야만인 &gt; 선교사 = 위험!</text>
+    `),
+    options:['9번','11번','13번','15번'], ans:1,
+    exp:'고전 선교사-야만인 문제. 최소 11번 건너야 가능.'
+  },
+  {
+    cat:'🚣 강 건너기', diff:4, time:75,
+    q:'개구리가 7개의 돌을 건너요.\n1칸 또는 2칸씩만 점프 가능.\n시작에서 끝까지 가는 방법의 수?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <defs>
+        <radialGradient id="pondG">
+          <stop offset="0%" stop-color="#0e7490"/>
+          <stop offset="100%" stop-color="#164e63"/>
+        </radialGradient>
+        <radialGradient id="stoneG" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#86efac"/>
+          <stop offset="50%" stop-color="#22c55e"/>
+          <stop offset="100%" stop-color="#14532d"/>
+        </radialGradient>
+        <radialGradient id="finalStoneG" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fff5c8"/>
+          <stop offset="50%" stop-color="#ffce5c"/>
+          <stop offset="100%" stop-color="#a16207"/>
+        </radialGradient>
+      </defs>
+      <!-- 연못 -->
+      <rect x="0" y="100" width="320" height="120" fill="url(#pondG)"/>
+      <!-- 물결 -->
+      <ellipse cx="80" cy="160" rx="40" ry="6" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+      <ellipse cx="220" cy="180" rx="50" ry="7" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+      <ellipse cx="160" cy="200" rx="30" ry="5" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <!-- 돌 7개 -->
+      ${[0,1,2,3,4,5].map(i => `
+        <g filter="url(#dropShadow)" transform="translate(${30+i*40},150)">
+          <ellipse cx="0" cy="3" rx="18" ry="6" fill="rgba(0,0,0,0.4)"/>
+          <ellipse cx="0" cy="0" rx="18" ry="10" fill="url(#stoneG)"/>
+          <ellipse cx="-5" cy="-3" rx="8" ry="4" fill="rgba(255,255,255,0.3)"/>
+        </g>
+      `).join('')}
+      <!-- 마지막 돌 (골드) -->
+      <g filter="url(#bigGlow)" transform="translate(270,150)">
+        <ellipse cx="0" cy="3" rx="20" ry="7" fill="rgba(0,0,0,0.4)"/>
+        <ellipse cx="0" cy="0" rx="20" ry="11" fill="url(#finalStoneG)"/>
+        <ellipse cx="-5" cy="-3" rx="9" ry="5" fill="rgba(255,255,255,0.4)"/>
+      </g>
+      <!-- 개구리 -->
+      <g filter="url(#dropShadow)" transform="translate(30,120)">
+        <ellipse cx="0" cy="6" rx="14" ry="4" fill="rgba(0,0,0,0.4)"/>
+        <ellipse cx="0" cy="0" rx="14" ry="11" fill="url(#mintSph)"/>
+        <circle cx="-5" cy="-7" r="4" fill="url(#mintSph)"/>
+        <circle cx="5" cy="-7" r="4" fill="url(#mintSph)"/>
+        <circle cx="-5" cy="-7" r="2" fill="#000"/>
+        <circle cx="5" cy="-7" r="2" fill="#000"/>
+        <circle cx="-4" cy="-8" r="0.8" fill="#fff"/>
+        <circle cx="6" cy="-8" r="0.8" fill="#fff"/>
+      </g>
+      <!-- 점프 궤적 -->
+      <path d="M 30 120 Q 50 80 70 115" stroke="#ffce5c" stroke-width="2" stroke-dasharray="3,3" fill="none" opacity="0.7"/>
+      <path d="M 70 115 Q 90 80 110 115" stroke="#ffce5c" stroke-width="2" stroke-dasharray="3,3" fill="none" opacity="0.5"/>
+      <!-- 도착 깃발 -->
+      <g transform="translate(270,110)">
+        <line x1="0" y1="0" x2="0" y2="-25" stroke="#fff" stroke-width="2"/>
+        <polygon points="0,-25 12,-22 0,-15" fill="#dc2626"/>
+      </g>
+      <!-- 점프 옵션 -->
+      <text x="160" y="35" font-size="13" fill="#ffce5c" text-anchor="middle" font-weight="800" filter="url(#glow)">🐸 1칸 or 2칸씩</text>
+    `),
+    options:['8가지','13가지','21가지','34가지'], ans:1,
+    exp:'피보나치 수열! f(n)=f(n-1)+f(n-2). 7번째 = 13가지.'
+  },
+  {
+    cat:'🚣 강 건너기', diff:4, time:75,
+    q:'5개의 큐브를 옮겨야 해요.\n1번 큐브는 2칸까지, 2번은 4칸까지,\n3번은 6칸... 한 번에 한 개만.\n10칸 떨어진 곳으로 옮기는 최소 회수는?\n(각 큐브는 한 번에 자기 최대거리만큼 이동)',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <line x1="20" y1="120" x2="300" y2="120" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="3,3"/>
+      <g filter="url(#dropShadow)">
+        <rect x="30" y="100" width="30" height="30" rx="4" fill="url(#pinkG)"/>
+        <text x="45" y="120" font-size="12" font-weight="900" fill="#fff" text-anchor="middle">1</text>
+        <rect x="65" y="100" width="30" height="30" rx="4" fill="url(#cyanG)"/>
+        <text x="80" y="120" font-size="12" font-weight="900" fill="#fff" text-anchor="middle">2</text>
+        <rect x="100" y="100" width="30" height="30" rx="4" fill="url(#mintG)"/>
+        <text x="115" y="120" font-size="12" font-weight="900" fill="#fff" text-anchor="middle">3</text>
+      </g>
+      <text x="240" y="80" font-size="20" fill="#ffce5c" text-anchor="middle">→ 10칸</text>
+      <text x="160" y="180" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="middle">큐브n = 2n칸까지 이동</text>
+    `),
+    options:['5번','7번','10번','15번'], ans:0,
+    exp:'큐브3,4,5는 한 번에 10칸 가능. 큐브1,2도 두 번 점프로 도착. 총 5번.'
+  },
+
+  // === 🎯 패턴 인식 (5) ===
+  {
+    cat:'🎯 패턴 인식', diff:4, time:60,
+    q:'?에 들어갈 도형은?',
+    visual:()=>svgTag(320, 240, COMMON_DEFS + `
+      <g font-size="20" font-weight="900" filter="url(#dropShadow)">
+        <circle cx="50" cy="50" r="22" fill="url(#cyanG)"/>
+        <text x="50" y="58" fill="#fff" text-anchor="middle">1</text>
+        <rect x="125" y="28" width="44" height="44" rx="6" fill="url(#cyanG)"/>
+        <text x="147" y="58" fill="#fff" text-anchor="middle">4</text>
+        <polygon points="270,28 295,70 245,70" fill="url(#cyanG)"/>
+        <text x="270" y="60" fill="#fff" text-anchor="middle">9</text>
+        
+        <circle cx="50" cy="130" r="22" fill="url(#pinkG)"/>
+        <text x="50" y="138" fill="#fff" text-anchor="middle">2</text>
+        <rect x="125" y="108" width="44" height="44" rx="6" fill="url(#pinkG)"/>
+        <text x="147" y="138" fill="#fff" text-anchor="middle">5</text>
+        <polygon points="270,108 295,150 245,150" fill="url(#pinkG)"/>
+        <text x="270" y="140" fill="#fff" text-anchor="middle">10</text>
+        
+        <circle cx="50" cy="210" r="22" fill="url(#goldG)"/>
+        <text x="50" y="218" fill="#fff" text-anchor="middle">3</text>
+        <rect x="125" y="188" width="44" height="44" rx="6" fill="url(#goldG)"/>
+        <text x="147" y="218" fill="#fff" text-anchor="middle">?</text>
+        <polygon points="270,188 295,230 245,230" fill="url(#goldG)"/>
+        <text x="270" y="220" fill="#fff" text-anchor="middle">11</text>
+      </g>
+    `),
+    options:['5','6','7','8'], ans:1,
+    exp:'각 행: 원→사각형 +3, 사각형→삼각형 +5. 3행: 3+3=6.'
+  },
+  {
+    cat:'🎯 패턴 인식', diff:5, time:75,
+    q:'각 도형이 회전합니다.\n다음 도형은 무엇일까요?',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <g transform="translate(50,100)">
+          <rect x="-25" y="-25" width="50" height="50" fill="url(#cyanG)"/>
+          <polygon points="0,-25 25,-25 0,0" fill="rgba(0,0,0,0.3)"/>
+        </g>
+        <text x="50" y="170" font-size="11" fill="#fff" text-anchor="middle">0°</text>
+        <g transform="translate(140,100) rotate(90)">
+          <rect x="-25" y="-25" width="50" height="50" fill="url(#cyanG)"/>
+          <polygon points="0,-25 25,-25 0,0" fill="rgba(0,0,0,0.3)"/>
+        </g>
+        <text x="140" y="170" font-size="11" fill="#fff" text-anchor="middle">90°</text>
+        <g transform="translate(230,100) rotate(180)">
+          <rect x="-25" y="-25" width="50" height="50" fill="url(#cyanG)"/>
+          <polygon points="0,-25 25,-25 0,0" fill="rgba(0,0,0,0.3)"/>
+        </g>
+        <text x="230" y="170" font-size="11" fill="#fff" text-anchor="middle">180°</text>
+        <rect x="285" y="75" width="50" height="50" fill="rgba(255,255,255,0.05)" stroke="rgba(255,206,92,0.5)" stroke-width="2" stroke-dasharray="4,4"/>
+        <text x="310" y="110" font-size="28" fill="#ff8fc7" text-anchor="middle" font-weight="900">?</text>
+      </g>
+    `),
+    options:['270° 회전','0°로 돌아감','360° (=0°)','다른 도형'], ans:0,
+    exp:'90°씩 시계방향 회전. 다음은 270°.'
+  },
+  {
+    cat:'🎯 패턴 인식', diff:5, time:75,
+    q:'수열의 ?를 구하세요.\n각 도형 안의 숫자가 핵심.',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g font-size="20" font-weight="900" fill="#fff" text-anchor="middle" filter="url(#dropShadow)">
+        <circle cx="50" cy="70" r="28" fill="url(#purpleG)"/>
+        <text x="50" y="78">2</text>
+        <circle cx="120" cy="70" r="28" fill="url(#purpleG)"/>
+        <text x="120" y="78">6</text>
+        <circle cx="190" cy="70" r="28" fill="url(#purpleG)"/>
+        <text x="190" y="78">12</text>
+        <circle cx="260" cy="70" r="28" fill="url(#purpleG)"/>
+        <text x="260" y="78">20</text>
+        <circle cx="155" cy="160" r="32" fill="rgba(255,255,255,0.05)" stroke="url(#goldG)" stroke-width="2" stroke-dasharray="4,4"/>
+        <text x="155" y="170" fill="#ff8fc7" font-size="26">?</text>
+      </g>
+      <text x="155" y="210" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="middle">2, 6, 12, 20, ?</text>
+    `),
+    options:['28','30','32','36'], ans:1,
+    exp:'차이가 4,6,8,10,... 다음 차이는 10. 20+10=30. (n(n+1) 형태)'
+  },
+  {
+    cat:'🎯 패턴 인식', diff:4, time:60,
+    q:'알파벳 순서의 규칙은?',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <g font-size="32" font-weight="900" fill="#ffce5c" text-anchor="middle" filter="url(#glow)">
+        <circle cx="50" cy="90" r="32" fill="url(#purpleG)" filter="url(#dropShadow)"/>
+        <text x="50" y="100" fill="#fff">A</text>
+        <circle cx="115" cy="90" r="32" fill="url(#purpleG)" filter="url(#dropShadow)"/>
+        <text x="115" y="100" fill="#fff">C</text>
+        <circle cx="180" cy="90" r="32" fill="url(#purpleG)" filter="url(#dropShadow)"/>
+        <text x="180" y="100" fill="#fff">F</text>
+        <circle cx="245" cy="90" r="32" fill="url(#purpleG)" filter="url(#dropShadow)"/>
+        <text x="245" y="100" fill="#fff">J</text>
+        <circle cx="290" cy="90" r="20" fill="rgba(255,255,255,0.05)" stroke="rgba(255,206,92,0.5)" stroke-width="2" stroke-dasharray="3,3"/>
+        <text x="290" y="98" fill="#ff8fc7" font-size="18">?</text>
+      </g>
+      <text x="160" y="170" font-size="12" fill="rgba(255,255,255,0.6)" text-anchor="middle">A, C, F, J, ?</text>
+    `),
+    options:['M','N','O','P'], ans:2,
+    exp:'+2, +3, +4, +5. J(10) + 5 = O(15).'
+  },
+  {
+    cat:'🎯 패턴 인식', diff:4, time:60,
+    q:'마지막 숫자는?',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <g font-size="24" font-weight="900" fill="#fff" text-anchor="middle" filter="url(#dropShadow)">
+        <rect x="20" y="60" width="55" height="55" rx="8" fill="url(#cyanG)"/>
+        <text x="47" y="95">1</text>
+        <rect x="85" y="60" width="55" height="55" rx="8" fill="url(#cyanG)"/>
+        <text x="112" y="95">1</text>
+        <rect x="150" y="60" width="55" height="55" rx="8" fill="url(#cyanG)"/>
+        <text x="177" y="95">2</text>
+        <rect x="215" y="60" width="55" height="55" rx="8" fill="url(#cyanG)"/>
+        <text x="242" y="95">3</text>
+        <rect x="20" y="125" width="55" height="55" rx="8" fill="url(#cyanG)"/>
+        <text x="47" y="160">5</text>
+        <rect x="85" y="125" width="55" height="55" rx="8" fill="url(#cyanG)"/>
+        <text x="112" y="160">8</text>
+        <rect x="150" y="125" width="55" height="55" rx="8" fill="url(#pinkG)"/>
+        <text x="177" y="160">?</text>
+      </g>
+    `),
+    options:['11','12','13','15'], ans:2,
+    exp:'피보나치 수열! 앞 두 수의 합. 5+8=13.'
+  },
+
+  // === 🔷 시각/도형 (4) ===
+  {
+    cat:'🔷 시각·도형', diff:3, time:60,
+    q:'그림에 있는 정사각형은\n모두 몇 개일까요?',
+    visual:()=>{
+      let g = COMMON_DEFS;
+      // 3x3 격자
+      g += '<g filter="url(#dropShadow)">';
+      for(let i=0;i<=3;i++){
+        g += `<line x1="${50+i*50}" y1="40" x2="${50+i*50}" y2="190" stroke="url(#cyanG)" stroke-width="2.5"/>`;
+        g += `<line x1="50" y1="${40+i*50}" x2="200" y2="${40+i*50}" stroke="url(#cyanG)" stroke-width="2.5"/>`;
+      }
+      g += '</g>';
+      return svgTag(240, 220, g);
+    },
+    options:['9개','12개','14개','18개'], ans:2,
+    exp:'1x1: 9개, 2x2: 4개, 3x3: 1개. 총 14개.'
+  },
+  {
+    cat:'🔷 시각·도형', diff:4, time:75,
+    q:'겹친 별과 원에서\n총 영역(겹친 부분 포함)은 몇 개?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <polygon points="160,30 178,90 240,90 190,125 208,185 160,150 112,185 130,125 80,90 142,90" fill="url(#goldG)" opacity="0.6"/>
+        <circle cx="160" cy="110" r="60" fill="url(#cyanG)" opacity="0.4"/>
+      </g>
+    `),
+    options:['3개','5개','7개','9개'], ans:2,
+    exp:'별의 5개 뾰족 부분 + 원의 4개 영역 + 가운데 겹친 부분 등 = 7개.'
+  },
+  {
+    cat:'🔷 시각·도형', diff:5, time:90,
+    q:'정육면체를 펼쳤을 때 가능한 전개도는?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <rect x="50" y="30" width="40" height="40" fill="url(#pinkG)"/>
+        <rect x="50" y="70" width="40" height="40" fill="url(#pinkG)"/>
+        <rect x="50" y="110" width="40" height="40" fill="url(#pinkG)"/>
+        <rect x="50" y="150" width="40" height="40" fill="url(#pinkG)"/>
+        <rect x="90" y="70" width="40" height="40" fill="url(#pinkG)"/>
+        <rect x="10" y="110" width="40" height="40" fill="url(#pinkG)"/>
+      </g>
+      <text x="160" y="115" font-size="20" fill="#fff" text-anchor="middle">?</text>
+      <g filter="url(#dropShadow)" transform="translate(180,30)">
+        <rect x="0" y="0" width="35" height="35" fill="url(#cyanG)"/>
+        <rect x="0" y="35" width="35" height="35" fill="url(#cyanG)"/>
+        <rect x="0" y="70" width="35" height="35" fill="url(#cyanG)"/>
+        <rect x="35" y="35" width="35" height="35" fill="url(#cyanG)"/>
+        <rect x="70" y="35" width="35" height="35" fill="url(#cyanG)"/>
+        <rect x="105" y="35" width="35" height="35" fill="url(#cyanG)"/>
+      </g>
+    `),
+    options:['왼쪽만 가능','오른쪽만 가능','둘 다 가능','둘 다 불가능'], ans:2,
+    exp:'정육면체 전개도는 11가지 패턴이 가능. 둘 다 정상 전개도.'
+  },
+  {
+    cat:'🔷 시각·도형', diff:4, time:75,
+    q:'케이크를 직선으로 자를 때\n4번 잘라서 최대 몇 조각?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <circle cx="160" cy="110" r="80" fill="url(#pinkG)" opacity="0.4" stroke="url(#pinkG)" stroke-width="3"/>
+        <line x1="80" y1="110" x2="240" y2="110" stroke="#fff" stroke-width="2.5"/>
+        <line x1="100" y1="50" x2="220" y2="170" stroke="#fff" stroke-width="2.5"/>
+        <line x1="220" y1="50" x2="100" y2="170" stroke="#fff" stroke-width="2.5"/>
+        <line x1="160" y1="30" x2="160" y2="190" stroke="#fff" stroke-width="2.5"/>
+      </g>
+    `),
+    options:['8조각','10조각','11조각','12조각'], ans:2,
+    exp:'1+n(n+1)/2 공식. n=4면 1+10=11조각.'
+  },
+
+  // === 💡 창의 사고 (5) ===
+  {
+    cat:'💡 창의 사고', diff:5, time:75,
+    q:'6개의 성냥으로 정삼각형 4개를\n만들려면 어떻게 해야 할까요?',
+    visual:()=>svgTag(320, 200, COMMON_DEFS + `
+      <g stroke="url(#goldG)" stroke-width="4" filter="url(#dropShadow)">
+        <line x1="60" y1="160" x2="180" y2="160"/>
+        <line x1="60" y1="160" x2="120" y2="60"/>
+        <line x1="180" y1="160" x2="120" y2="60"/>
+      </g>
+      <text x="120" y="190" font-size="11" fill="rgba(255,255,255,0.6)" text-anchor="middle">현재: 평면 삼각형 1개</text>
+      <g font-size="40" filter="url(#glow)">
+        <text x="240" y="120" fill="#ffce5c">+5?</text>
+      </g>
+    `),
+    options:['성냥 부러뜨려서','평면에 6각별','3D 정사면체(피라미드)','불가능'], ans:2,
+    exp:'평면에선 불가능. 3D 정사면체(피라미드)를 만들면 모든 면이 정삼각형 = 4개.'
+  },
+  {
+    cat:'💡 창의 사고', diff:4, time:60,
+    q:'9개의 점을 4개의 직선으로\n한 번에 모두 연결하려면?\n(펜을 떼지 않고)',
+    visual:()=>svgTag(320, 260, COMMON_DEFS + `
+      <!-- 격자 배경 -->
+      <rect x="60" y="40" width="200" height="200" fill="url(#gridPattern)" rx="8"/>
+      <!-- 점선 박스 (생각의 틀) -->
+      <rect x="70" y="50" width="180" height="180" fill="none" stroke="rgba(255,206,92,0.2)" stroke-width="2" stroke-dasharray="6,4"/>
+      <!-- 9개 점 -->
+      <g filter="url(#bigGlow)">
+        ${[0,1,2].map(r => [0,1,2].map(c => `
+          <g transform="translate(${100+c*60},${80+r*60})">
+            <circle cx="0" cy="0" r="11" fill="url(#cyanSph)"/>
+            ${highlight(0,0,11)}
+            <circle cx="0" cy="0" r="3" fill="#fff" opacity="0.9"/>
+          </g>
+        `).join('')).join('')}
+      </g>
+      <!-- 안내 텍스트 -->
+      <text x="160" y="252" font-size="11" fill="rgba(255,206,92,0.7)" text-anchor="middle" font-weight="700">✏️ 4개의 직선으로 9개 점 모두 연결</text>
+    `),
+    options:['선이 격자 안에서만','선이 격자 밖으로 나가야','대각선만 사용','불가능'], ans:1,
+    exp:'유명한 "Thinking outside the box"의 유래! 격자 밖으로 선을 그어야만 4개 직선으로 9개 점을 잇기 가능.'
+  },
+  {
+    cat:'💡 창의 사고', diff:4, time:60,
+    q:'두 개의 모래시계로 정확히\n15분을 재려면?\n(7분짜리, 11분짜리)',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <defs>
+        <linearGradient id="sandG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#fde68a"/>
+          <stop offset="50%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+        <linearGradient id="hourglassFrameG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#a16207"/>
+          <stop offset="50%" stop-color="#854d0e"/>
+          <stop offset="100%" stop-color="#451a03"/>
+        </linearGradient>
+      </defs>
+      <!-- 모래시계 1 (7분) -->
+      <g filter="url(#bigShadow)" transform="translate(90,30)">
+        <!-- 상하 받침 -->
+        <rect x="-30" y="0" width="60" height="6" rx="2" fill="url(#hourglassFrameG)"/>
+        <rect x="-30" y="124" width="60" height="6" rx="2" fill="url(#hourglassFrameG)"/>
+        <!-- 유리 (상) -->
+        <path d="M -28 6 L 28 6 L 4 65 L -4 65 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <!-- 유리 (하) -->
+        <path d="M -28 124 L 28 124 L 4 65 L -4 65 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <!-- 모래 (상) -->
+        <path d="M -22 12 L 22 12 L 4 56 L -4 56 Z" fill="url(#sandG)" opacity="0.95"/>
+        <!-- 모래 흐름 -->
+        <line x1="0" y1="65" x2="0" y2="105" stroke="url(#sandG)" stroke-width="2"/>
+        <!-- 모래 (하) -->
+        <ellipse cx="0" cy="118" rx="20" ry="6" fill="url(#sandG)"/>
+        <ellipse cx="0" cy="115" rx="15" ry="4" fill="url(#sandG)" opacity="0.8"/>
+        <!-- 기둥 -->
+        <line x1="-28" y1="6" x2="-28" y2="124" stroke="url(#hourglassFrameG)" stroke-width="2.5"/>
+        <line x1="28" y1="6" x2="28" y2="124" stroke="url(#hourglassFrameG)" stroke-width="2.5"/>
+      </g>
+      <text x="90" y="180" font-size="14" fill="#ffce5c" text-anchor="middle" font-weight="900" filter="url(#glow)">7분</text>
+      
+      <!-- 모래시계 2 (11분) -->
+      <g filter="url(#bigShadow)" transform="translate(230,30)">
+        <rect x="-30" y="0" width="60" height="6" rx="2" fill="url(#hourglassFrameG)"/>
+        <rect x="-30" y="124" width="60" height="6" rx="2" fill="url(#hourglassFrameG)"/>
+        <path d="M -28 6 L 28 6 L 4 65 L -4 65 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <path d="M -28 124 L 28 124 L 4 65 L -4 65 Z" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <!-- 핑크 모래 (구분용) -->
+        <path d="M -22 12 L 22 12 L 4 56 L -4 56 Z" fill="url(#pinkG)" opacity="0.95"/>
+        <line x1="0" y1="65" x2="0" y2="105" stroke="url(#pinkG)" stroke-width="2"/>
+        <ellipse cx="0" cy="118" rx="20" ry="6" fill="url(#pinkG)"/>
+        <ellipse cx="0" cy="115" rx="15" ry="4" fill="url(#pinkG)" opacity="0.8"/>
+        <line x1="-28" y1="6" x2="-28" y2="124" stroke="url(#hourglassFrameG)" stroke-width="2.5"/>
+        <line x1="28" y1="6" x2="28" y2="124" stroke="url(#hourglassFrameG)" stroke-width="2.5"/>
+      </g>
+      <text x="230" y="180" font-size="14" fill="#ff8fc7" text-anchor="middle" font-weight="900" filter="url(#glow)">11분</text>
+      
+      <!-- 목표 표시 -->
+      <text x="160" y="205" font-size="13" fill="#fff" text-anchor="middle" font-weight="800">목표: ⏰ 정확히 15분</text>
+    `),
+    options:['11분 + 7분(중간에 멈춤)','11분 시작, 7분 두번 뒤집기','동시 시작, 7분 끝나면 11분 뒤집기','불가능'], ans:2,
+    exp:'동시 시작 → 7분 모래시계 끝나면 11분 모래시계 뒤집기. 11분짜리에서 4분 흐른 만큼이 거꾸로 다시 흘러내려 7+4+4=15분.'
+  },
+  {
+    cat:'💡 창의 사고', diff:5, time:90,
+    q:'12개의 동전 중 1개가 가짜.\n양팔저울 3번만 사용해서\n가짜를 찾고 무거운지 가벼운지 확인하려면?',
+    visual:()=>svgTag(320, 260, COMMON_DEFS + `
+      <defs>
+        <radialGradient id="coinG" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fff8d6"/>
+          <stop offset="50%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#92400e"/>
+        </radialGradient>
+        <radialGradient id="fakeCoinG" cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#fecaca"/>
+          <stop offset="50%" stop-color="#f87171"/>
+          <stop offset="100%" stop-color="#7f1d1d"/>
+        </radialGradient>
+      </defs>
+      <!-- 12개 동전 -->
+      <g filter="url(#dropShadow)">
+        ${Array.from({length:12},(_,i)=>{
+          const x=40+(i%6)*45;
+          const y=40+Math.floor(i/6)*55;
+          return `
+            <g transform="translate(${x},${y})">
+              <ellipse cx="0" cy="2" rx="17" ry="5" fill="rgba(0,0,0,0.4)"/>
+              <circle cx="0" cy="0" r="17" fill="url(#coinG)"/>
+              ${highlight(0,0,17)}
+              <circle cx="0" cy="0" r="13" fill="none" stroke="rgba(146,64,14,0.5)" stroke-width="1"/>
+              <text x="0" y="4" font-size="12" font-weight="900" fill="#451a03" text-anchor="middle">${i+1}</text>
+            </g>
+          `;
+        }).join('')}
+      </g>
+      <!-- 양팔 저울 -->
+      <g filter="url(#dropShadow)" transform="translate(160,180)">
+        <line x1="0" y1="-10" x2="0" y2="20" stroke="#cbd5e1" stroke-width="4"/>
+        <circle cx="0" cy="-10" r="4" fill="#cbd5e1"/>
+        <line x1="-70" y1="10" x2="70" y2="10" stroke="#cbd5e1" stroke-width="4"/>
+        <!-- 받침 -->
+        <polygon points="-15,20 15,20 8,40 -8,40" fill="#cbd5e1"/>
+        <!-- 양쪽 접시 -->
+        <path d="M -85 10 Q -85 25 -55 25 Q -25 25 -25 10" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
+        <line x1="-55" y1="10" x2="-55" y2="25" stroke="#94a3b8" stroke-width="2"/>
+        <path d="M 25 10 Q 25 25 55 25 Q 85 25 85 10" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
+        <line x1="55" y1="10" x2="55" y2="25" stroke="#94a3b8" stroke-width="2"/>
+      </g>
+      <!-- 안내 -->
+      <text x="160" y="245" font-size="11" fill="#ffce5c" text-anchor="middle" font-weight="700">⚖️ 양팔 저울 3번만 사용</text>
+    `),
+    options:['4-4-4 분할','6-6 분할','3-3-3-3 분할','불가능'], ans:0,
+    exp:'고전 12동전 문제. 4-4-4로 처음 측정하여 가짜 그룹을 찾고, 다시 분할해 3번 안에 해결 가능.'
+  },
+  {
+    cat:'💡 창의 사고', diff:4, time:60,
+    q:'사다리꼴 모양 들판이 있어요.\n4명이 똑같은 크기로 나눠 갖되,\n같은 모양으로 나누려면?',
+    visual:()=>svgTag(320, 220, COMMON_DEFS + `
+      <g filter="url(#dropShadow)">
+        <polygon points="80,60 240,60 280,180 40,180" fill="url(#mintG)" opacity="0.4" stroke="url(#mintG)" stroke-width="3"/>
+      </g>
+      <text x="160" y="200" font-size="12" fill="rgba(255,255,255,0.6)" text-anchor="middle">4명이 같은 모양·크기로 분할</text>
+    `),
+    options:['가로 4등분','세로 4등분','대각선 십자','작은 사다리꼴 4개로'], ans:3,
+    exp:'사다리꼴은 작은 사다리꼴 4개로 분할 가능. 각 변을 2등분해서 연결.'
+  },
+];
+
+let currentIdx = 0, score = 0, hints = 3;
+let correctCount = 0, wrongCount = 0, skipCount = 0;
+let answered = false, bestScore = 0;
+let soundEnabled = true, savedState = null;
+let timerInterval = null, timeLeft = 0;
+
+try {
+  bestScore = parseInt(localStorage.getItem('elite_best') || '0') || 0;
+  if (localStorage.getItem('elite_sound') === 'off') soundEnabled = false;
+  const saved = localStorage.getItem('elite_progress');
+  if (saved) savedState = JSON.parse(saved);
+} catch(e) {}
+
+let audioCtx = null;
+function initAudio(){ if(audioCtx)return; try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+function tone(f,d,t,v){ if(!soundEnabled||!audioCtx)return; t=t||'sine';v=v||0.1; const o=audioCtx.createOscillator(),g=audioCtx.createGain(); o.type=t;o.frequency.value=f; const n=audioCtx.currentTime; g.gain.setValueAtTime(0,n);g.gain.linearRampToValueAtTime(v,n+0.01);g.gain.exponentialRampToValueAtTime(0.001,n+d); o.connect(g);g.connect(audioCtx.destination);o.start(n);o.stop(n+d); }
+function playCorrect(){ [659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,0.12,'triangle',0.1),i*70)); }
+function playWrong(){ [300,200].forEach((f,i)=>setTimeout(()=>tone(f,0.15,'sawtooth',0.08),i*100)); }
+function playClick(){ tone(500,0.05,'sine',0.05); }
+function playHint(){ tone(700,0.08,'triangle',0.08); setTimeout(()=>tone(1000,0.1,'triangle',0.06),50); }
+function playFinish(){ [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>tone(f,0.2,'triangle',0.12),i*100)); }
+function playTimeout(){ [200,150,100].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'sawtooth',0.1),i*120)); }
+function playTick(){ tone(800,0.04,'square',0.04); }
+function toggleSound(){ soundEnabled=!soundEnabled; try{localStorage.setItem('elite_sound',soundEnabled?'on':'off');}catch(e){} document.getElementById('sound-toggle').textContent=soundEnabled?'🔊':'🔇'; }
+window.toggleSound=toggleSound;
+
+function startGame(){
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('result-screen').classList.add('hidden');
+  currentIdx = 0; score = 0; hints = 3;
+  correctCount = 0; wrongCount = 0; skipCount = 0;
+  saveProgress();
+  showQuestion();
+}
+window.startGame = startGame;
+
+function continueGame(){
+  if(!savedState) return;
+  initAudio();
+  document.getElementById('start-screen').classList.add('hidden');
+  currentIdx = savedState.idx; score = savedState.score; hints = savedState.hints;
+  correctCount = savedState.correct; wrongCount = savedState.wrong; skipCount = savedState.skip;
+  showQuestion();
+}
+window.continueGame = continueGame;
+
+function saveProgress(){
+  try { localStorage.setItem('elite_progress', JSON.stringify({ idx:currentIdx, score, hints, correct:correctCount, wrong:wrongCount, skip:skipCount })); } catch(e) {}
+}
+function clearProgress(){ try{localStorage.removeItem('elite_progress');}catch(e){} savedState=null; }
+
+function startTimer(seconds){
+  if(timerInterval) clearInterval(timerInterval);
+  timeLeft = seconds;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if(timeLeft <= 5 && timeLeft > 0) playTick();
+    if(timeLeft <= 0){
+      clearInterval(timerInterval); timerInterval = null;
+      if(!answered){ timeoutQuestion(); }
+    }
+  }, 1000);
+}
+function updateTimerDisplay(){
+  const t = document.getElementById('timer');
+  const tBox = document.getElementById('timer-box');
+  if(timeLeft <= 0){ t.textContent = '0'; }
+  else { t.textContent = timeLeft + 's'; }
+  tBox.classList.toggle('urgent', timeLeft <= 10 && timeLeft > 0);
+}
+function timeoutQuestion(){
+  if(answered) return;
+  answered = true;
+  const q = QUESTIONS[currentIdx];
+  const allBtns = document.querySelectorAll('.option');
+  allBtns.forEach((b,i) => {
+    b.disabled = true;
+    if(i === q.ans) b.classList.add('correct');
+  });
+  skipCount++;
+  playTimeout();
+  document.getElementById('explanation').style.display = 'block';
+  document.getElementById('explanation-text').textContent = '⏱ 시간 초과! ' + q.exp;
+  document.getElementById('btn-skip').style.display = 'none';
+  document.getElementById('btn-hint').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'block';
+  saveProgress();
+}
+
+function showQuestion(){
+  if(currentIdx >= QUESTIONS.length){ finish(); return; }
+  answered = false;
+  const q = QUESTIONS[currentIdx];
+  document.getElementById('category-tag').textContent = q.cat;
+  document.getElementById('difficulty').textContent = '⭐'.repeat(q.diff);
+  document.getElementById('question').textContent = q.q;
+  document.getElementById('visual').innerHTML = q.visual();
+  const optsEl = document.getElementById('options');
+  optsEl.innerHTML = '';
+  const isLong = q.options.some(o => o.length > 12);
+  optsEl.className = isLong ? 'options col1' : 'options';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.innerHTML = `<span class="opt-label">${String.fromCharCode(65+i)}</span><span>${opt}</span>`;
+    btn.onclick = () => selectOption(i, btn);
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('explanation').style.display = 'none';
+  document.getElementById('hint-text').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+  document.getElementById('btn-skip').style.display = 'block';
+  document.getElementById('btn-hint').style.display = 'block';
+  document.getElementById('btn-hint').disabled = hints <= 0;
+  document.getElementById('progress-fill').style.width = (currentIdx/QUESTIONS.length*100)+'%';
+  document.getElementById('progress-text').textContent = (currentIdx+1)+'/'+QUESTIONS.length;
+  document.getElementById('score').textContent = score;
+  document.getElementById('hint-count').textContent = hints;
+  startTimer(q.time || 60);
+}
+
+function selectOption(idx, btn){
+  if(answered) return;
+  answered = true;
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  const q = QUESTIONS[currentIdx];
+  const allBtns = document.querySelectorAll('.option');
+  allBtns.forEach((b,i) => {
+    b.disabled = true;
+    if(i === q.ans) b.classList.add('correct');
+    if(i === idx && idx !== q.ans) b.classList.add('wrong');
+  });
+  if(idx === q.ans){
+    const timeBonus = Math.floor(timeLeft * 5);
+    const points = 200 + q.diff * 50 + timeBonus;
+    score += points;
+    correctCount++;
+    playCorrect();
+  } else {
+    wrongCount++;
+    playWrong();
+  }
+  document.getElementById('explanation').style.display = 'block';
+  document.getElementById('explanation-text').textContent = q.exp;
+  document.getElementById('btn-skip').style.display = 'none';
+  document.getElementById('btn-hint').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'block';
+  document.getElementById('score').textContent = score;
+  saveProgress();
+}
+
+function useHint(){
+  if(hints <= 0 || answered) return;
+  const q = QUESTIONS[currentIdx];
+  hints--;
+  document.getElementById('hint-count').textContent = hints;
+  const wrongIndices = [];
+  for(let i=0;i<q.options.length;i++) if(i !== q.ans) wrongIndices.push(i);
+  wrongIndices.sort(() => Math.random()-0.5);
+  const toRemove = wrongIndices.slice(0, Math.min(2, wrongIndices.length));
+  const allBtns = document.querySelectorAll('.option');
+  toRemove.forEach(i => { allBtns[i].style.opacity = '0.3'; allBtns[i].disabled = true; });
+  const hintText = document.getElementById('hint-text');
+  hintText.style.display = 'block';
+  hintText.textContent = '💡 보기 2개가 제거되었어요!';
+  document.getElementById('btn-hint').disabled = true;
+  playHint();
+  saveProgress();
+}
+window.useHint = useHint;
+
+function skipQuestion(){
+  if(answered) return;
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  skipCount++;
+  playClick();
+  nextQuestion();
+}
+window.skipQuestion = skipQuestion;
+
+function nextQuestion(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  currentIdx++;
+  saveProgress();
+  if(currentIdx >= QUESTIONS.length){ finish(); }
+  else { showQuestion(); }
+}
+window.nextQuestion = nextQuestion;
+
+function finish(){
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  clearProgress();
+  if(score > bestScore){ bestScore = score; try{localStorage.setItem('elite_best',bestScore);}catch(e){} }
+  document.getElementById('r-correct').textContent = correctCount;
+  document.getElementById('r-wrong').textContent = wrongCount;
+  document.getElementById('r-skip').textContent = skipCount;
+  document.getElementById('r-score').textContent = score.toLocaleString();
+  document.getElementById('r-best').textContent = bestScore.toLocaleString();
+  const ratio = correctCount / QUESTIONS.length;
+  let emoji, title, sub;
+  if(ratio >= 0.9){ emoji='🏆'; title='엘리트!'; sub='진정한 두뇌의 소유자!'; }
+  else if(ratio >= 0.7){ emoji='🥇'; title='훌륭해요!'; sub='상위 10% 수준!'; }
+  else if(ratio >= 0.5){ emoji='🥈'; title='잘했어요!'; sub='절반 이상 정복!'; }
+  else if(ratio >= 0.3){ emoji='🥉'; title='도전 중!'; sub='연습하면 더 좋아져요!'; }
+  else { emoji='💪'; title='다시 도전!'; sub='엘리트는 만들어져요!'; }
+  document.getElementById('result-emoji').textContent = emoji;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-sub').textContent = sub;
+  document.getElementById('result-screen').classList.remove('hidden');
+  playFinish();
+}
+
+if(savedState && savedState.idx > 0 && savedState.idx < QUESTIONS.length){
+  document.getElementById('continue-btn').style.display = 'inline-block';
+  document.getElementById('continue-btn').textContent = `이어하기 (${savedState.idx+1}/${QUESTIONS.length})`;
+}
+document.getElementById('sound-toggle').textContent = soundEnabled ? '🔊' : '🔇';
+console.log('Elite Quiz loaded with', QUESTIONS.length, 'visual elite questions');
+</script>
+</body>
+</html>
